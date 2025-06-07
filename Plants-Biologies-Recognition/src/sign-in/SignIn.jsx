@@ -21,7 +21,7 @@ import {
   FacebookIcon,
   SitemarkIcon,
 } from "./components/CustomIcons.jsx";
-import { Link as RouterLink } from "react-router-dom";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: "flex",
@@ -66,6 +66,7 @@ const SignInContainer = styled(Stack)(({ theme }) => ({
 }));
 
 export default function SignIn(props) {
+  const navigate = useNavigate();
   const [emailError, setEmailError] = React.useState(false);
   const [emailErrorMessage, setEmailErrorMessage] = React.useState("");
   const [passwordError, setPasswordError] = React.useState(false);
@@ -86,10 +87,16 @@ export default function SignIn(props) {
       return;
     }
     const data = new FormData(event.currentTarget);
-    console.log({
-      email: data.get("email"),
-      password: data.get("password"),
-    });
+    const email = data.get("email");
+    const password = data.get("password");
+
+    // Hardcoded credentials for testing
+    if (email === "test@example.com" && password === "password123") {
+      // Navigate to dashboard on successful sign-in
+      navigate("/dashboard");
+    } else {
+      alert("Invalid credentials. Please use test@example.com / password123");
+    }
   };
 
   const validateInputs = () => {
