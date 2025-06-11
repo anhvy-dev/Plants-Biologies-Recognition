@@ -20,6 +20,7 @@
     "@mui/x-tree-view": "^8.5.1",
     "@react-spring/web": "^10.0.1",
     "dayjs": "^1.11.13",
+    "onnxruntime-web": "^1.22.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.6.1"
