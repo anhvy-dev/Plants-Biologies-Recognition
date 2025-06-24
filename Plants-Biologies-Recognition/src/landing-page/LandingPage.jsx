@@ -4,7 +4,6 @@ import Divider from "@mui/material/Divider";
 import AppTheme from "../shared-theme/AppTheme.jsx";
 import AppAppBar from "./components/AppAppBar.jsx";
 import Hero from "./components/Hero.jsx";
-import LogoCollection from "./components/LogoCollection.jsx";
 import Highlights from "./components/Highlights.jsx";
 import Pricing from "./components/Pricing.jsx";
 import Features from "./components/Features.jsx";
@@ -19,7 +18,6 @@ export default function MarketingPage(props) {
       <AppAppBar />
       <Hero />
       <div>
-        <LogoCollection />
         <Features />
         <Divider />
         <Testimonials />
