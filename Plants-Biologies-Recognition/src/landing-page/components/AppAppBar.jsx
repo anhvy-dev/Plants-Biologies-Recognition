@@ -14,6 +14,7 @@ import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import ColorModeIconDropdown from "../../shared-theme/ColorModeIconDropdown";
 import Sitemark from "./SitemarkIcon";
 import { Link as RouterLink } from "react-router-dom";
+import PlantLogo from "../../assets/plant-biology-education-high-resolution-logo.png";
 
 const StyledToolbar = styled(Toolbar)(({ theme }) => ({
   display: "flex",
@@ -54,7 +55,19 @@ export default function AppAppBar() {
           <Box
             sx={{ flexGrow: 1, display: "flex", alignItems: "center", px: 0 }}
           >
-            <Sitemark />
+            {/* Replace <Sitemark /> with logo image */}
+            <Box sx={{ display: "flex", alignItems: "center", mr: 2 }}>
+              <img
+                src={PlantLogo}
+                alt="Plant Biology Education"
+                style={{
+                  height: 32,
+                  width: "auto",
+                  objectFit: "contain",
+                  borderRadius: 6,
+                }}
+              />
+            </Box>
             <Box sx={{ display: { xs: "none", md: "flex" } }}>
               <Button variant="text" color="info" size="small">
                 Features

@@ -16,12 +16,10 @@ import { styled } from "@mui/material/styles";
 import ForgotPassword from "./components/ForgotPassword.jsx";
 import AppTheme from "../shared-theme/AppTheme.jsx";
 import ColorModeSelect from "../shared-theme/ColorModeSelect.jsx";
-import {
-  GoogleIcon,
-  FacebookIcon,
-  SitemarkIcon,
-} from "./components/CustomIcons.jsx";
+import { GoogleIcon, FacebookIcon } from "./components/CustomIcons.jsx";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
+import api from "../config/axios.jsx";
+import PlantLogo from "../assets/plant-biology-education-high-resolution-logo.png";
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: "flex",
@@ -67,11 +65,13 @@ const SignInContainer = styled(Stack)(({ theme }) => ({
 
 export default function SignIn(props) {
   const navigate = useNavigate();
-  const [emailError, setEmailError] = React.useState(false);
-  const [emailErrorMessage, setEmailErrorMessage] = React.useState("");
+  const [accountError, setAccountError] = React.useState(false);
+  const [accountErrorMessage, setAccountErrorMessage] = React.useState("");
   const [passwordError, setPasswordError] = React.useState(false);
   const [passwordErrorMessage, setPasswordErrorMessage] = React.useState("");
   const [open, setOpen] = React.useState(false);
+  const [loading, setLoading] = React.useState(false);
+  const [apiError, setApiError] = React.useState("");
 
   const handleClickOpen = () => {
     setOpen(true);
@@ -81,37 +81,53 @@ export default function SignIn(props) {
     setOpen(false);
   };
 
-  const handleSubmit = (event) => {
-    if (emailError || passwordError) {
-      event.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setApiError("");
+    if (!validateInputs()) {
       return;
     }
     const data = new FormData(event.currentTarget);
-    const email = data.get("email");
+    const account = data.get("account");
     const password = data.get("password");
 
-    // Hardcoded credentials for testing
-    if (email === "test@example.com" && password === "password123") {
-      // Navigate to dashboard on successful sign-in
+    setLoading(true);
+    try {
+      // Replace with your actual API endpoint
+      await api.post("Authentication/login", {
+        account,
+        password,
+      });
+      // Handle success (e.g., save token, redirect)
+      // Example: if (response.data.success) { ... }
       navigate("/dashboard");
-    } else {
-      alert("Invalid credentials. Please use test@example.com / password123");
+    } catch (error) {
+      if (error.response && error.response.status === 401) {
+        setApiError("Invalid account or password.");
+      } else {
+        setApiError(
+          error.response?.data?.message ||
+            "Sign in failed. Please check your credentials."
+        );
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   const validateInputs = () => {
-    const email = document.getElementById("email");
+    const account = document.getElementById("account");
     const password = document.getElementById("password");
 
     let isValid = true;
 
-    if (!email.value || !/\S+@\S+\.\S+/.test(email.value)) {
-      setEmailError(true);
-      setEmailErrorMessage("Please enter a valid email address.");
+    if (!account.value || !/\S+@\S+\.\S+/.test(account.value)) {
+      setAccountError(true);
+      setAccountErrorMessage("Please enter a valid account address.");
       isValid = false;
     } else {
-      setEmailError(false);
-      setEmailErrorMessage("");
+      setAccountError(false);
+      setAccountErrorMessage("");
     }
 
     if (!password.value || password.value.length < 6) {
@@ -134,11 +150,28 @@ export default function SignIn(props) {
           sx={{ position: "fixed", top: "1rem", right: "1rem" }}
         />
         <Card variant="outlined">
-          <SitemarkIcon />
+          <Box sx={{ display: "flex", justifyContent: "left" }}>
+            <img
+              src={PlantLogo}
+              alt="Plant Biology Education"
+              style={{
+                height: 30,
+                marginBottom: 4,
+                objectFit: "cover",
+                borderRadius: 8,
+                width: "auto",
+                maxWidth: "100%",
+              }}
+            />
+          </Box>
           <Typography
             component="h1"
             variant="h4"
-            sx={{ width: "100%", fontSize: "clamp(2rem, 10vw, 2.15rem)" }}
+            sx={{
+              width: "100%",
+              fontSize: "clamp(2rem, 10vw, 2.15rem)",
+              mt: 0,
+            }}
           >
             Sign in
           </Typography>
@@ -154,22 +187,22 @@ export default function SignIn(props) {
             }}
           >
             <FormControl>
-              <FormLabel htmlFor="email" sx={{ textAlign: "left" }}>
-                Email
+              <FormLabel htmlFor="account" sx={{ textAlign: "left" }}>
+                Account
               </FormLabel>
               <TextField
-                error={emailError}
-                helperText={emailErrorMessage}
-                id="email"
-                type="email"
-                name="email"
-                placeholder="your@email.com"
-                autoComplete="email"
+                error={accountError}
+                helperText={accountErrorMessage}
+                id="account"
+                type="account"
+                name="account"
+                placeholder="Username"
+                autoComplete="account"
                 autoFocus
                 required
                 fullWidth
                 variant="outlined"
-                color={emailError ? "error" : "primary"}
+                color={accountError ? "error" : "primary"}
               />
             </FormControl>
             <FormControl>
@@ -196,13 +229,18 @@ export default function SignIn(props) {
               label="Remember me"
             />
             <ForgotPassword open={open} handleClose={handleClose} />
+            {apiError && (
+              <Typography color="error" sx={{ mt: 1 }}>
+                {apiError}
+              </Typography>
+            )}
             <Button
               type="submit"
               fullWidth
               variant="contained"
-              onClick={validateInputs}
+              disabled={loading}
             >
-              Sign in
+              {loading ? "Signing in..." : "Sign in"}
             </Button>
             <Link
               component="button"
@@ -223,14 +261,6 @@ export default function SignIn(props) {
               startIcon={<GoogleIcon />}
             >
               Sign in with Google
-            </Button>
-            <Button
-              fullWidth
-              variant="outlined"
-              onClick={() => alert("Sign in with Facebook")}
-              startIcon={<FacebookIcon />}
-            >
-              Sign in with Facebook
             </Button>
             <Typography sx={{ textAlign: "center" }}>
               Don&apos;t have an account?{" "}

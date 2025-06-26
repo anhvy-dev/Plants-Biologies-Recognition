@@ -15,12 +15,12 @@ import MuiCard from "@mui/material/Card";
 import { styled } from "@mui/material/styles";
 import AppTheme from "../shared-theme/AppTheme.jsx";
 import ColorModeSelect from "../shared-theme/ColorModeSelect.jsx";
-import {
-  GoogleIcon,
-  FacebookIcon,
-  SitemarkIcon,
-} from "./components/CustomIcons.jsx";
+import { GoogleIcon, FacebookIcon } from "./components/CustomIcons.jsx";
 import { Link as RouterLink } from "react-router-dom";
+import api from "../config/axios.jsx";
+import Radio from "@mui/material/Radio";
+import RadioGroup from "@mui/material/RadioGroup";
+import PlantLogo from "../assets/plant-biology-education-high-resolution-logo.png";
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: "flex",
@@ -65,27 +65,31 @@ const SignUpContainer = styled(Stack)(({ theme }) => ({
 }));
 
 export default function SignUp(props) {
-  const [emailError, setEmailError] = React.useState(false);
-  const [emailErrorMessage, setEmailErrorMessage] = React.useState("");
+  const [accountError, setAccountError] = React.useState(false);
+  const [accountErrorMessage, setAccountErrorMessage] = React.useState("");
   const [passwordError, setPasswordError] = React.useState(false);
   const [passwordErrorMessage, setPasswordErrorMessage] = React.useState("");
   const [nameError, setNameError] = React.useState(false);
   const [nameErrorMessage, setNameErrorMessage] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const [apiError, setApiError] = React.useState("");
+  const [apiSuccess, setApiSuccess] = React.useState("");
+  const [role, setRole] = React.useState("Student");
 
   const validateInputs = () => {
-    const email = document.getElementById("email");
+    const account = document.getElementById("account");
     const password = document.getElementById("password");
     const name = document.getElementById("name");
 
     let isValid = true;
 
-    if (!email.value || !/\S+@\S+\.\S+/.test(email.value)) {
-      setEmailError(true);
-      setEmailErrorMessage("Please enter a valid email address.");
+    if (!account.value || !/\S+@\S+\.\S+/.test(account.value)) {
+      setAccountError(true);
+      setAccountErrorMessage("Please enter a valid account address.");
       isValid = false;
     } else {
-      setEmailError(false);
-      setEmailErrorMessage("");
+      setAccountError(false);
+      setAccountErrorMessage("");
     }
 
     if (!password.value || password.value.length < 6) {
@@ -109,18 +113,36 @@ export default function SignUp(props) {
     return isValid;
   };
 
-  const handleSubmit = (event) => {
-    if (nameError || emailError || passwordError) {
-      event.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setApiError("");
+    setApiSuccess("");
+    if (!validateInputs()) {
       return;
     }
     const data = new FormData(event.currentTarget);
-    console.log({
-      name: data.get("name"),
-      lastName: data.get("lastName"),
-      email: data.get("email"),
-      password: data.get("password"),
-    });
+    const fullName = data.get("name");
+    const account = data.get("account");
+    const password = data.get("password");
+    const roleValue = data.get("role");
+
+    try {
+      setLoading(true);
+      await api.post("Authentication/register", {
+        account,
+        password,
+        role: roleValue,
+        fullName,
+      });
+      setApiSuccess("Registration successful! You can now sign in.");
+    } catch (error) {
+      setApiError(
+        error.response?.data?.message ||
+          "Registration failed. Please check your information."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -129,11 +151,28 @@ export default function SignUp(props) {
       <ColorModeSelect sx={{ position: "fixed", top: "1rem", right: "1rem" }} />
       <SignUpContainer direction="column" justifyContent="space-between">
         <Card variant="outlined">
-          <SitemarkIcon />
+          <Box sx={{ display: "flex", justifyContent: "left" }}>
+            <img
+              src={PlantLogo}
+              alt="Plant Biology Education"
+              style={{
+                height: 30, // decrease logo height
+                marginBottom: 4,
+                objectFit: "cover", // crop the image if needed
+                borderRadius: 8, // optional: rounded corners for a cleaner crop
+                width: "auto",
+                maxWidth: "100%",
+              }}
+            />
+          </Box>
           <Typography
             component="h1"
             variant="h4"
-            sx={{ width: "100%", fontSize: "clamp(2rem, 10vw, 2.15rem)" }}
+            sx={{
+              width: "100%",
+              fontSize: "clamp(2rem, 10vw, 2.15rem)",
+              mt: 0,
+            }}
           >
             Sign up
           </Typography>
@@ -159,19 +198,19 @@ export default function SignUp(props) {
               />
             </FormControl>
             <FormControl>
-              <FormLabel htmlFor="email" sx={{ textAlign: "left" }}>
-                Email
+              <FormLabel htmlFor="account" sx={{ textAlign: "left" }}>
+                Account
               </FormLabel>
               <TextField
                 required
                 fullWidth
-                id="email"
-                placeholder="your@email.com"
-                name="email"
-                autoComplete="email"
+                id="account"
+                placeholder="Username"
+                name="account"
+                autoComplete="account"
                 variant="outlined"
-                error={emailError}
-                helperText={emailErrorMessage}
+                error={accountError}
+                helperText={accountErrorMessage}
                 color={passwordError ? "error" : "primary"}
               />
             </FormControl>
@@ -193,17 +232,46 @@ export default function SignUp(props) {
                 color={passwordError ? "error" : "primary"}
               />
             </FormControl>
-            <FormControlLabel
-              control={<Checkbox value="allowExtraEmails" color="primary" />}
-              label="I want to receive updates via email."
-            />
+            <FormControl>
+              <FormLabel sx={{ textAlign: "left" }}>Role</FormLabel>
+              <RadioGroup
+                row
+                name="role"
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                sx={{ justifyContent: "space-between", display: "flex" }} // add flex styling
+              >
+                <FormControlLabel
+                  value="Student"
+                  control={<Radio />}
+                  label="Student"
+                  sx={{ flex: 1, justifyContent: "flex-start", marginRight: 2 }}
+                />
+                <FormControlLabel
+                  value="Teacher"
+                  control={<Radio />}
+                  label="Teacher"
+                  sx={{ flex: 1, justifyContent: "flex-end", marginLeft: 2 }}
+                />
+              </RadioGroup>
+            </FormControl>
+            {apiError && (
+              <Typography color="error" sx={{ mt: 1 }}>
+                {apiError}
+              </Typography>
+            )}
+            {apiSuccess && (
+              <Typography color="success.main" sx={{ mt: 1 }}>
+                {apiSuccess}
+              </Typography>
+            )}
             <Button
               type="submit"
               fullWidth
               variant="contained"
-              onClick={validateInputs}
+              disabled={loading}
             >
-              Sign up
+              {loading ? "Signing up..." : "Sign up"}
             </Button>
           </Box>
           <Divider>
@@ -217,14 +285,6 @@ export default function SignUp(props) {
               startIcon={<GoogleIcon />}
             >
               Sign up with Google
-            </Button>
-            <Button
-              fullWidth
-              variant="outlined"
-              onClick={() => alert("Sign up with Facebook")}
-              startIcon={<FacebookIcon />}
-            >
-              Sign up with Facebook
             </Button>
             <Typography sx={{ textAlign: "center" }}>
               Already have an account?{" "}

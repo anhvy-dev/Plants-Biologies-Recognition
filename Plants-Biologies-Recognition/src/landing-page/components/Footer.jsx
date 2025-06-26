@@ -11,7 +11,7 @@ import Typography from "@mui/material/Typography";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import LinkedInIcon from "@mui/icons-material/LinkedIn";
 import TwitterIcon from "@mui/icons-material/X";
-import SitemarkIcon from "./SitemarkIcon";
+import PlantLogo from "../../assets/plant-biology-education-high-resolution-logo.png";
 
 export default function Footer() {
   return (
@@ -42,7 +42,18 @@ export default function Footer() {
           }}
         >
           <Box sx={{ width: { xs: "100%", sm: "60%" } }}>
-            <SitemarkIcon />
+            {/* Replace <SitemarkIcon /> with logo image, keep similar size */}
+            <img
+              src={PlantLogo}
+              alt="Plant Biology Education"
+              style={{
+                height: 32,
+                width: "auto",
+                objectFit: "contain",
+                marginBottom: 4,
+                borderRadius: 6,
+              }}
+            />
             <Typography
               variant="body2"
               gutterBottom
