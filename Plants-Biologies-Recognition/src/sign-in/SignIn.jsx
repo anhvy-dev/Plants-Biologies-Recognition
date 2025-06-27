@@ -116,19 +116,11 @@ export default function SignIn(props) {
   };
 
   const validateInputs = () => {
-    const account = document.getElementById("account");
     const password = document.getElementById("password");
 
     let isValid = true;
 
-    if (!account.value || !/\S+@\S+\.\S+/.test(account.value)) {
-      setAccountError(true);
-      setAccountErrorMessage("Please enter a valid account address.");
-      isValid = false;
-    } else {
-      setAccountError(false);
-      setAccountErrorMessage("");
-    }
+    // Remove account validation
 
     if (!password.value || password.value.length < 6) {
       setPasswordError(true);
