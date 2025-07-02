@@ -16,11 +16,13 @@ import { styled } from "@mui/material/styles";
 import AppTheme from "../shared-theme/AppTheme.jsx";
 import ColorModeSelect from "../shared-theme/ColorModeSelect.jsx";
 import { GoogleIcon, FacebookIcon } from "./components/CustomIcons.jsx";
-import { Link as RouterLink } from "react-router-dom";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 import api from "../config/axios.jsx";
 import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
 import PlantLogo from "../assets/plant-biology-education-high-resolution-logo.png";
+import Snackbar from "@mui/material/Snackbar";
+import MuiAlert from "@mui/material/Alert";
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: "flex",
@@ -65,8 +67,8 @@ const SignUpContainer = styled(Stack)(({ theme }) => ({
 }));
 
 export default function SignUp(props) {
-  const [accountError, setAccountError] = React.useState(false);
-  const [accountErrorMessage, setAccountErrorMessage] = React.useState("");
+  const [accountError] = React.useState(false);
+  const [accountErrorMessage] = React.useState("");
   const [passwordError, setPasswordError] = React.useState(false);
   const [passwordErrorMessage, setPasswordErrorMessage] = React.useState("");
   const [nameError, setNameError] = React.useState(false);
@@ -75,22 +77,18 @@ export default function SignUp(props) {
   const [apiError, setApiError] = React.useState("");
   const [apiSuccess, setApiSuccess] = React.useState("");
   const [role, setRole] = React.useState("Student");
+  const [snackbar, setSnackbar] = React.useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+  const navigate = useNavigate();
 
   const validateInputs = () => {
-    const account = document.getElementById("account");
     const password = document.getElementById("password");
     const name = document.getElementById("name");
 
     let isValid = true;
-
-    if (!account.value || !/\S+@\S+\.\S+/.test(account.value)) {
-      setAccountError(true);
-      setAccountErrorMessage("Please enter a valid account address.");
-      isValid = false;
-    } else {
-      setAccountError(false);
-      setAccountErrorMessage("");
-    }
 
     if (!password.value || password.value.length < 6) {
       setPasswordError(true);
@@ -133,16 +131,36 @@ export default function SignUp(props) {
         password,
         role: roleValue,
         fullName,
+        isActive: true,
       });
       setApiSuccess("Registration successful! You can now sign in.");
+      setSnackbar({
+        open: true,
+        message: "Registration successful! Redirecting to sign in...",
+        severity: "success",
+      });
+      setTimeout(() => {
+        navigate("/sign-in");
+      }, 3000);
     } catch (error) {
       setApiError(
         error.response?.data?.message ||
           "Registration failed. Please check your information."
       );
+      setSnackbar({
+        open: true,
+        message:
+          error.response?.data?.message ||
+          "Registration failed. Please check your information.",
+        severity: "error",
+      });
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSnackbarClose = () => {
+    setSnackbar({ ...snackbar, open: false });
   };
 
   return (
@@ -300,6 +318,22 @@ export default function SignUp(props) {
             </Typography>
           </Box>
         </Card>
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={3000}
+          onClose={handleSnackbarClose}
+          anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        >
+          <MuiAlert
+            elevation={6}
+            variant="filled"
+            onClose={handleSnackbarClose}
+            severity={snackbar.severity}
+            sx={{ width: "100%" }}
+          >
+            {snackbar.message}
+          </MuiAlert>
+        </Snackbar>
       </SignUpContainer>
     </AppTheme>
   );
