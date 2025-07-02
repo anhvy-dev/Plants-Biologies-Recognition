@@ -1,7 +1,72 @@
-// Những phần import giữ nguyên
+import * as React from "react";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Checkbox from "@mui/material/Checkbox";
+import CssBaseline from "@mui/material/CssBaseline";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Divider from "@mui/material/Divider";
+import FormLabel from "@mui/material/FormLabel";
+import FormControl from "@mui/material/FormControl";
+import Link from "@mui/material/Link";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
+import Stack from "@mui/material/Stack";
+import MuiCard from "@mui/material/Card";
+import { styled } from "@mui/material/styles";
+import ForgotPassword from "./components/ForgotPassword.jsx";
+import AppTheme from "../shared-theme/AppTheme.jsx";
+import ColorModeSelect from "../shared-theme/ColorModeSelect.jsx";
+import { GoogleIcon, FacebookIcon } from "./components/CustomIcons.jsx";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
+import api from "../config/axios.jsx";
+import PlantLogo from "../assets/plant-biology-education-high-resolution-logo.png";
+
+const Card = styled(MuiCard)(({ theme }) => ({
+  display: "flex",
+  flexDirection: "column",
+  alignSelf: "center",
+  width: "100%",
+  padding: theme.spacing(4),
+  gap: theme.spacing(2),
+  margin: "auto",
+  boxShadow:
+    "hsla(220, 30%, 5%, 0.05) 0px 5px 15px 0px, hsla(220, 25%, 10%, 0.05) 0px 15px 35px -5px",
+  [theme.breakpoints.up("sm")]: {
+    width: "450px",
+  },
+  ...theme.applyStyles("dark", {
+    boxShadow:
+      "hsla(220, 30%, 5%, 0.5) 0px 5px 15px 0px, hsla(220, 25%, 10%, 0.08) 0px 15px 35px -5px",
+  }),
+}));
+
+const SignInContainer = styled(Stack)(({ theme }) => ({
+  height: "calc((1 - var(--template-frame-height, 0)) * 100dvh)",
+  minHeight: "100%",
+  padding: theme.spacing(2),
+  [theme.breakpoints.up("sm")]: {
+    padding: theme.spacing(4),
+  },
+  "&::before": {
+    content: '""',
+    display: "block",
+    position: "absolute",
+    zIndex: -1,
+    inset: 0,
+    backgroundImage:
+      "radial-gradient(ellipse at 50% 50%, hsl(210, 100%, 97%), hsl(0, 0%, 100%))",
+    backgroundRepeat: "no-repeat",
+    ...theme.applyStyles("dark", {
+      backgroundImage:
+        "radial-gradient(at 50% 50%, hsla(210, 100%, 16%, 0.5), hsl(220, 30%, 5%))",
+    }),
+  },
+}));
 
 export default function SignIn(props) {
   const navigate = useNavigate();
+  const [accountError, setAccountError] = React.useState(false);
+  const [accountErrorMessage, setAccountErrorMessage] = React.useState("");
   const [passwordError, setPasswordError] = React.useState(false);
   const [passwordErrorMessage, setPasswordErrorMessage] = React.useState("");
   const [open, setOpen] = React.useState(false);
@@ -28,10 +93,13 @@ export default function SignIn(props) {
 
     setLoading(true);
     try {
+      // Replace with your actual API endpoint
       await api.post("Authentication/login", {
         account,
         password,
       });
+      // Handle success (e.g., save token, redirect)
+      // Example: if (response.data.success) { ... }
       navigate("/dashboard");
     } catch (error) {
       if (error.response && error.response.status === 401) {
@@ -39,7 +107,7 @@ export default function SignIn(props) {
       } else {
         setApiError(
           error.response?.data?.message ||
-          "Sign in failed. Please check your credentials."
+            "Sign in failed. Please check your credentials."
         );
       }
     } finally {
@@ -49,7 +117,10 @@ export default function SignIn(props) {
 
   const validateInputs = () => {
     const password = document.getElementById("password");
+
     let isValid = true;
+
+    // Remove account validation
 
     if (!password.value || password.value.length < 6) {
       setPasswordError(true);
@@ -67,7 +138,9 @@ export default function SignIn(props) {
     <AppTheme {...props}>
       <CssBaseline enableColorScheme />
       <SignInContainer direction="column" justifyContent="space-between">
-        <ColorModeSelect sx={{ position: "fixed", top: "1rem", right: "1rem" }} />
+        <ColorModeSelect
+          sx={{ position: "fixed", top: "1rem", right: "1rem" }}
+        />
         <Card variant="outlined">
           <Box sx={{ display: "flex", justifyContent: "left" }}>
             <img
@@ -83,17 +156,37 @@ export default function SignIn(props) {
               }}
             />
           </Box>
-          <Typography component="h1" variant="h4" sx={{ width: "100%", fontSize: "clamp(2rem, 10vw, 2.15rem)", mt: 0 }}>
+          <Typography
+            component="h1"
+            variant="h4"
+            sx={{
+              width: "100%",
+              fontSize: "clamp(2rem, 10vw, 2.15rem)",
+              mt: 0,
+            }}
+          >
             Sign in
           </Typography>
-          <Box component="form" onSubmit={handleSubmit} noValidate sx={{ display: "flex", flexDirection: "column", width: "100%", gap: 2 }}>
+          <Box
+            component="form"
+            onSubmit={handleSubmit}
+            noValidate
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              width: "100%",
+              gap: 2,
+            }}
+          >
             <FormControl>
               <FormLabel htmlFor="account" sx={{ textAlign: "left" }}>
                 Account
               </FormLabel>
               <TextField
+                error={accountError}
+                helperText={accountErrorMessage}
                 id="account"
-                type="text"
+                type="account"
                 name="account"
                 placeholder="Username"
                 autoComplete="account"
@@ -101,6 +194,7 @@ export default function SignIn(props) {
                 required
                 fullWidth
                 variant="outlined"
+                color={accountError ? "error" : "primary"}
               />
             </FormControl>
             <FormControl>
@@ -115,6 +209,7 @@ export default function SignIn(props) {
                 type="password"
                 id="password"
                 autoComplete="current-password"
+                autoFocus
                 required
                 fullWidth
                 variant="outlined"
@@ -131,21 +226,43 @@ export default function SignIn(props) {
                 {apiError}
               </Typography>
             )}
-            <Button type="submit" fullWidth variant="contained" disabled={loading}>
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              disabled={loading}
+            >
               {loading ? "Signing in..." : "Sign in"}
             </Button>
-            <Link component="button" type="button" onClick={handleClickOpen} variant="body2" sx={{ alignSelf: "center" }}>
+            <Link
+              component="button"
+              type="button"
+              onClick={handleClickOpen}
+              variant="body2"
+              sx={{ alignSelf: "center" }}
+            >
               Forgot your password?
             </Link>
           </Box>
           <Divider>or</Divider>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <Button fullWidth variant="outlined" onClick={() => alert("Sign in with Google")} startIcon={<GoogleIcon />}>
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={() => alert("Sign in with Google")}
+              startIcon={<GoogleIcon />}
+            >
               Sign in with Google
             </Button>
             <Typography sx={{ textAlign: "center" }}>
               Don&apos;t have an account?{" "}
-              <Link component={RouterLink} to="/sign-up" variant="body2" sx={{ alignSelf: "center" }}>
+              <Link
+                component={RouterLink}
+                to="/sign-up"
+                href="/material-ui/getting-started/templates/sign-in/"
+                variant="body2"
+                sx={{ alignSelf: "center" }}
+              >
                 Sign up
               </Link>
             </Typography>
