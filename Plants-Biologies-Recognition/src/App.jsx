@@ -6,7 +6,7 @@ import LandingPage from "./landing-page/LandingPage";
 import Signin from "./sign-in/SignIn";
 import Signup from "./sign-up/SignUp";
 
-import Admin from "./admin/admin";
+import Admin from "./admin/Admin";
 import Account from "./admin/pages/Account";
 import Dashboard from "./admin/pages/Dashboard";
 import Feedback from "./admin/pages/Feedback";
@@ -14,7 +14,7 @@ import Book from "./admin/pages/Book";
 
 import Student from "./student/Student";
 
-import Teacher from "./teacher/teacher";
+import Teacher from "./teacher/Teacher";
 import Report from "./teacher/pages/Report";
 
 import { createRoutes } from "./routes/utils";
