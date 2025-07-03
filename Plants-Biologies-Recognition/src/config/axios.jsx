@@ -1,5 +1,5 @@
 import axios from "axios";
-const baseUrl = "https://plants-biologies.onrender.com/api/";
+const baseUrl = "https://bilogieseducationapp.onrender.com/api/";
 
 const config = {
   baseURL: baseUrl,

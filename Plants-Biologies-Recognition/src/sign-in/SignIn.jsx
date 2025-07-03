@@ -16,10 +16,14 @@ import { styled } from "@mui/material/styles";
 import ForgotPassword from "./components/ForgotPassword.jsx";
 import AppTheme from "../shared-theme/AppTheme.jsx";
 import ColorModeSelect from "../shared-theme/ColorModeSelect.jsx";
-import { GoogleIcon, FacebookIcon } from "./components/CustomIcons.jsx";
-import { Link as RouterLink, useNavigate } from "react-router-dom";
-import api from "../config/axios.jsx";
+import { GoogleIcon } from "./components/CustomIcons.jsx";
+import { Link as RouterLink } from "react-router-dom";
+// import api from "../config/axios.jsx";
 import PlantLogo from "../assets/plant-biology-education-high-resolution-logo.png";
+import { useAuthStore } from "../(auth)/store";
+import { useMutation } from "@tanstack/react-query";
+import Snackbar from "@mui/material/Snackbar";
+import MuiAlert from "@mui/material/Alert";
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: "flex",
@@ -64,14 +68,41 @@ const SignInContainer = styled(Stack)(({ theme }) => ({
 }));
 
 export default function SignIn(props) {
-  const navigate = useNavigate();
-  const [accountError, setAccountError] = React.useState(false);
-  const [accountErrorMessage, setAccountErrorMessage] = React.useState("");
+  const [accountError] = React.useState(false);
   const [passwordError, setPasswordError] = React.useState(false);
   const [passwordErrorMessage, setPasswordErrorMessage] = React.useState("");
   const [open, setOpen] = React.useState(false);
-  const [loading, setLoading] = React.useState(false);
-  const [apiError, setApiError] = React.useState("");
+  const [loading] = React.useState(false);
+  const [apiError] = React.useState("");
+  const [snackbar, setSnackbar] = React.useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+  const { login } = useAuthStore();
+
+  const handleSnackbarClose = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
+
+  const loginMutation = useMutation({
+    mutationFn: login,
+    onSuccess: () => {
+      setSnackbar({
+        open: true,
+        message: "Sign in successful",
+        severity: "success",
+      });
+    },
+    onError: (error) => {
+      console.error("Login error:", error);
+      const errorMessage =
+        error.message === "username_or_password_incorrect"
+          ? "Incorrect username or password"
+          : "Account not found. Please try again.";
+      setSnackbar({ open: true, message: errorMessage, severity: "error" });
+    },
+  });
 
   const handleClickOpen = () => {
     setOpen(true);
@@ -81,39 +112,45 @@ export default function SignIn(props) {
     setOpen(false);
   };
 
-  const handleSubmit = async (event) => {
+  const handleSubmit = (event) => {
     event.preventDefault();
-    setApiError("");
     if (!validateInputs()) {
       return;
     }
     const data = new FormData(event.currentTarget);
-    const account = data.get("account");
-    const password = data.get("password");
-
-    setLoading(true);
-    try {
-      // Replace with your actual API endpoint
-      await api.post("Authentication/login", {
-        account,
-        password,
-      });
-      // Handle success (e.g., save token, redirect)
-      // Example: if (response.data.success) { ... }
-      navigate("/dashboard");
-    } catch (error) {
-      if (error.response && error.response.status === 401) {
-        setApiError("Invalid account or password.");
-      } else {
-        setApiError(
-          error.response?.data?.message ||
-            "Sign in failed. Please check your credentials."
-        );
-      }
-    } finally {
-      setLoading(false);
-    }
+    const values = {
+      account: data.get("account"),
+      password: data.get("password"),
+    };
+    loginMutation.mutate(values); // Pass values to the mutate function
   };
+  //   const data = new FormData(event.currentTarget);
+  //   const account = data.get("account");
+  //   const password = data.get("password");
+
+  //   setLoading(true);
+  //   try {
+  //     // Replace with your actual API endpoint
+  //     await api.post("Authentication/login", {
+  //       account,
+  //       password,
+  //     });
+  //     // Handle success (e.g., save token, redirect)
+  //     // Example: if (response.data.success) { ... }
+  //     navigate("/admin");
+  //   } catch (error) {
+  //     if (error.response && error.response.status === 401) {
+  //       setApiError("Invalid account or password.");
+  //     } else {
+  //       setApiError(
+  //         error.response?.data?.message ||
+  //           "Sign in failed. Please check your credentials."
+  //       );
+  //     }
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const validateInputs = () => {
     const password = document.getElementById("password");
@@ -184,9 +221,7 @@ export default function SignIn(props) {
               </FormLabel>
               <TextField
                 error={accountError}
-                helperText={accountErrorMessage}
                 id="account"
-                type="account"
                 name="account"
                 placeholder="Username"
                 autoComplete="account"
@@ -268,6 +303,22 @@ export default function SignIn(props) {
             </Typography>
           </Box>
         </Card>
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={3000}
+          onClose={handleSnackbarClose}
+          anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        >
+          <MuiAlert
+            elevation={6}
+            variant="filled"
+            onClose={handleSnackbarClose}
+            severity={snackbar.severity}
+            sx={{ width: "100%" }}
+          >
+            {snackbar.message}
+          </MuiAlert>
+        </Snackbar>
       </SignInContainer>
     </AppTheme>
   );
