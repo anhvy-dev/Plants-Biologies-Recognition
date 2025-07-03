@@ -5,6 +5,7 @@ import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
+import AddIcon from "@mui/icons-material/Add"; // Add this import at the top
 import Chip from "@mui/material/Chip";
 import api from "../../config/axios";
 import Snackbar from "@mui/material/Snackbar";
@@ -15,9 +16,10 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
+import MenuItem from "@mui/material/MenuItem";
 
 const columnsBase = (handleDelete, handleEdit) => [
-  { field: "id", headerName: "ID", width: 100 },
+  { field: "user_Id", headerName: "ID", width: 100 },
   { field: "account", headerName: "Account", width: 150 },
   { field: "password", headerName: "Password", width: 120 },
   { field: "role", headerName: "Role", width: 120 },
@@ -61,7 +63,7 @@ const columnsBase = (handleDelete, handleEdit) => [
       <IconButton
         color="error"
         size="small"
-        onClick={() => handleDelete(params.row.id)}
+        onClick={() => handleDelete(params.row.user_Id)} // <-- fix here
       >
         <DeleteIcon />
       </IconButton>
@@ -88,20 +90,22 @@ export default function AccountGrid() {
     isActive: true,
   });
 
+  // Create dialog state
+  const [createOpen, setCreateOpen] = React.useState(false);
+  const [createValues, setCreateValues] = React.useState({
+    account: "",
+    password: "",
+    role: "Teacher",
+    fullName: "",
+    isActive: true,
+  });
+
   const fetchAccounts = React.useCallback(() => {
     setLoading(true);
     api
       .get("/User/search") // changed from /User/getAllUsers to /User/search
       .then((res) => {
-        const users = res.data.map((user, idx) => ({
-          id: user.userId || idx + 1,
-          account: user.account,
-          password: "******",
-          role: user.role,
-          fullName: user.fullName,
-          isActive: user.isActive,
-        }));
-        setAccounts(users);
+        setAccounts(res.data);
       })
       .catch(() => setAccounts([]))
       .finally(() => setLoading(false));
@@ -189,6 +193,43 @@ export default function AccountGrid() {
     }
   };
 
+  const handleCreateOpen = () => setCreateOpen(true);
+  const handleCreateClose = () => setCreateOpen(false);
+
+  const handleCreateChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setCreateValues((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
+  const handleCreateSubmit = async () => {
+    try {
+      await api.post("/User/admin-create", createValues);
+      setSnackbar({
+        open: true,
+        message: "Account created successfully.",
+        severity: "success",
+      });
+      setCreateOpen(false);
+      setCreateValues({
+        account: "",
+        password: "",
+        role: "Teacher",
+        fullName: "",
+        isActive: true,
+      });
+      fetchAccounts();
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: error?.response?.data?.message || "Failed to create account.",
+        severity: "error",
+      });
+    }
+  };
+
   const handleSnackbarClose = () => {
     setSnackbar({ ...snackbar, open: false });
   };
@@ -198,6 +239,15 @@ export default function AccountGrid() {
       <Typography component="h2" variant="h6" sx={{ mb: 2 }}>
         Account Management
       </Typography>
+      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={handleCreateOpen}
+        >
+          Create
+        </Button>
+      </Box>
       <Box sx={{ width: "100%" }}>
         <DataGrid
           rows={accounts}
@@ -207,8 +257,113 @@ export default function AccountGrid() {
           rowsPerPageOptions={[5, 10, 20]}
           disableSelectionOnClick
           autoHeight
+          getRowId={(row) => row.user_Id}
         />
       </Box>
+      {/* Create Dialog */}
+      <Dialog
+        open={createOpen}
+        onClose={handleCreateClose}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Create Account</DialogTitle>
+        <DialogContent
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+            mt: 1,
+          }}
+        >
+          <TextField
+            label="Account"
+            name="account"
+            value={createValues.account}
+            onChange={handleCreateChange}
+            fullWidth
+            variant="outlined"
+            sx={{ mt: 2 }}
+          />
+          <TextField
+            label="Password"
+            name="password"
+            type="password"
+            value={createValues.password}
+            onChange={handleCreateChange}
+            fullWidth
+            variant="outlined"
+            sx={{ mt: 2 }}
+          />
+          <TextField
+            label="Full Name"
+            name="fullName"
+            value={createValues.fullName}
+            onChange={handleCreateChange}
+            fullWidth
+            variant="outlined"
+            sx={{ mt: 2 }}
+          />
+          <TextField
+            select
+            label="Role"
+            name="role"
+            value={createValues.role}
+            onChange={handleCreateChange}
+            fullWidth
+            variant="outlined"
+            sx={{ mt: 2 }}
+          >
+            <MenuItem value="Admin">Admin</MenuItem>
+            <MenuItem value="Teacher">Teacher</MenuItem>
+            <MenuItem value="Student">Student</MenuItem>
+          </TextField>
+          <TextField
+            label="Status"
+            name="isActive"
+            value={createValues.isActive ? "Active" : "Inactive"}
+            onChange={() =>
+              setCreateValues((prev) => ({
+                ...prev,
+                isActive: !prev.isActive,
+              }))
+            }
+            fullWidth
+            InputProps={{
+              readOnly: true,
+              endAdornment: (
+                <Button
+                  onClick={() =>
+                    setCreateValues((prev) => ({
+                      ...prev,
+                      isActive: !prev.isActive,
+                    }))
+                  }
+                  size="small"
+                  variant="outlined"
+                  color={createValues.isActive ? "success" : "inherit"}
+                  sx={{
+                    ml: 1,
+                    borderColor: createValues.isActive
+                      ? "success.main"
+                      : "grey.400",
+                  }}
+                >
+                  Toggle
+                </Button>
+              ),
+            }}
+            variant="outlined"
+            sx={{ mt: 2 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCreateClose}>Cancel</Button>
+          <Button onClick={handleCreateSubmit} variant="contained">
+            Create
+          </Button>
+        </DialogActions>
+      </Dialog>
       {/* Edit Dialog */}
       <Dialog open={editOpen} onClose={handleEditClose} maxWidth="md" fullWidth>
         <DialogTitle>Edit Account</DialogTitle>

@@ -152,6 +152,7 @@ export default function BookGrid() {
       const payload = {
         book_Id: editBook.book_Id,
         book_Title: editValues.book_Title,
+        cover_img: editBook.cover_img || "", // <-- Add this line
         isActive: editValues.isActive,
         status: editValues.status,
         rejectionReason: editValues.rejectionReason,
