@@ -12,14 +12,28 @@ import MuiAlert from "@mui/material/Alert";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
 import DialogActions from "@mui/material/DialogActions";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import { storage } from "../../config/firebase"; // Import Firebase storage
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import {
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  deleteObject,
+  listAll,
+} from "firebase/storage";
+import AddIcon from "@mui/icons-material/Add";
 
-const columnsBase = (handleDelete, handleEdit, handleStatusClick) => [
+const columnsBase = (
+  handleDelete,
+  handleEdit,
+  handleStatusClick,
+  setZoomImageSrc,
+  setZoomImageOpen
+) => [
   { field: "book_Id", headerName: "ID", width: 220 },
   { field: "book_Title", headerName: "Title", width: 220 },
   {
@@ -31,13 +45,23 @@ const columnsBase = (handleDelete, handleEdit, handleStatusClick) => [
         <img
           src={params.row.cover_img}
           alt="Book"
-          style={{ width: 60, height: 60, objectFit: "cover", borderRadius: 4 }}
+          style={{
+            width: 100,
+            height: 100,
+            objectFit: "cover",
+            borderRadius: 4,
+            cursor: "pointer",
+          }}
+          onClick={() => {
+            setZoomImageSrc(params.row.cover_img);
+            setZoomImageOpen(true);
+          }}
         />
       ) : (
         <Box
           sx={{
-            width: 60,
-            height: 60,
+            width: 100,
+            height: 100,
             bgcolor: "grey.200",
             borderRadius: 1,
             display: "flex",
@@ -133,6 +157,22 @@ export default function BookGrid() {
   const [statusValue, setStatusValue] = React.useState("");
   const [statusReason, setStatusReason] = React.useState("");
 
+  // Create dialog state
+  const [createOpen, setCreateOpen] = React.useState(false);
+  const [createValues, setCreateValues] = React.useState({
+    book_Title: "",
+    status: "Pending",
+    rejectionReason: "",
+  });
+  const [createImageFile, setCreateImageFile] = React.useState(null);
+  const [createImagePreview, setCreateImagePreview] = React.useState("");
+  const [createStep, setCreateStep] = React.useState(1);
+  const [newBookId, setNewBookId] = React.useState(null);
+
+  // Zoom image state
+  const [zoomImageOpen, setZoomImageOpen] = React.useState(false);
+  const [zoomImageSrc, setZoomImageSrc] = React.useState("");
+
   const fetchBooks = React.useCallback(() => {
     setLoading(true);
     api
@@ -148,10 +188,26 @@ export default function BookGrid() {
     fetchBooks();
   }, [fetchBooks]);
 
+  const deleteBookFolderFromFirebase = async (bookId) => {
+    try {
+      const folderRef = ref(storage, `books/${bookId}`);
+      const list = await listAll(folderRef);
+      // Delete all files in the folder
+      await Promise.all(list.items.map((item) => deleteObject(item)));
+      // Optionally, delete subfolders if any (not common for book covers)
+      // await Promise.all(list.prefixes.map((subfolder) => ...));
+    } catch {
+      // Ignore errors if folder does not exist
+      // Optionally, log error for debugging
+      // console.error("Firebase folder delete error:", error);
+    }
+  };
+
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this book?")) return;
     try {
       await api.delete(`/Book/${id}`);
+      await deleteBookFolderFromFirebase(id); // Delete images from Firebase Storage
       setSnackbar({
         open: true,
         message: "Book deleted successfully.",
@@ -203,8 +259,42 @@ export default function BookGrid() {
     }));
   };
 
+  // Handle create dialog open/close
+  const handleCreateOpen = () => setCreateOpen(true);
+  const handleCreateClose = () => {
+    setCreateOpen(false);
+    setCreateStep(1);
+    setCreateValues({
+      book_Title: "",
+      status: "Pending",
+      rejectionReason: "",
+    });
+    setCreateImageFile(null);
+    setCreateImagePreview("");
+    setNewBookId(null);
+  };
+
+  // Handle create form change
+  const handleCreateChange = (e) => {
+    const { name, value } = e.target;
+    setCreateValues((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  // Handle create image file change
+  const handleCreateImageChange = (e) => {
+    const file = e.target.files[0];
+    setCreateImageFile(file);
+    if (file) {
+      setCreateImagePreview(URL.createObjectURL(file));
+    }
+  };
+
   // Upload image to Firebase and return URL
   const uploadImageToFirebase = async (file, bookId) => {
+    // Use bookId as the folder name, and file.name as the file name
     const storageRef = ref(storage, `books/${bookId}/${file.name}`);
     await uploadBytes(storageRef, file);
     return await getDownloadURL(storageRef);
@@ -298,23 +388,169 @@ export default function BookGrid() {
     setImagePreview("");
   };
 
+  // Step 1: Handle Title submit
+  const handleCreateTitleSubmit = async () => {
+    try {
+      const res = await api.post("/Book", {
+        book_Title: createValues.book_Title,
+        status: "Pending",
+        rejectionReason: "",
+        cover_img: "",
+      });
+      const newBook = res.data;
+      setNewBookId(newBook.book_Id || newBook.id); // Use correct property
+      setCreateStep(2);
+      setSnackbar({
+        open: true,
+        message: "Book created. Now upload an image (optional).",
+        severity: "info",
+      });
+      fetchBooks();
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: error?.response?.data?.message || "Failed to create book.",
+        severity: "error",
+      });
+    }
+  };
+
+  // Step 2: Handle image upload
+  const handleCreateImageSubmit = async () => {
+    if (!createImageFile || !newBookId) {
+      handleCreateClose();
+      return;
+    }
+    try {
+      // Upload image to books/{bookId}/[file.name] on Firebase Storage
+      const cover_img = await uploadImageToFirebase(createImageFile, newBookId);
+      await api.put(`/Book/${newBookId}`, {
+        cover_img,
+      });
+      setSnackbar({
+        open: true,
+        message: "Image uploaded successfully.",
+        severity: "success",
+      });
+      handleCreateClose();
+      fetchBooks();
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: error?.response?.data?.message || "Failed to upload image.",
+        severity: "error",
+      });
+    }
+  };
+
   return (
     <Box sx={{ width: "100%", maxWidth: { sm: "100%", md: "1700px" } }}>
       <Typography component="h2" variant="h6" sx={{ mb: 2 }}>
         Book Management
       </Typography>
+      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={handleCreateOpen}
+        >
+          Create
+        </Button>
+      </Box>
       <Box sx={{ width: "100%" }}>
         <DataGrid
           rows={books}
-          columns={columnsBase(handleDelete, handleEdit, handleStatusClick)}
+          columns={columnsBase(
+            handleDelete,
+            handleEdit,
+            handleStatusClick,
+            setZoomImageSrc,
+            setZoomImageOpen
+          )}
           getRowId={(row) => row.book_Id}
           loading={loading}
           pageSize={5}
           rowsPerPageOptions={[5, 10, 20]}
           disableSelectionOnClick
           autoHeight
+          rowHeight={110} // Set row height to fit
         />
       </Box>
+      {/* Create Dialog */}
+      <Dialog
+        open={createOpen}
+        onClose={handleCreateClose}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Create Book</DialogTitle>
+        <DialogContent
+          sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}
+        >
+          {createStep === 1 && (
+            <>
+              <TextField
+                label="Title"
+                name="book_Title"
+                value={createValues.book_Title}
+                onChange={handleCreateChange}
+                fullWidth
+                variant="outlined"
+                sx={{ mt: 3 }}
+              />
+            </>
+          )}
+          {createStep === 2 && (
+            <>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                Upload Image (optional)
+              </Typography>
+              {createImagePreview && (
+                <Box sx={{ mb: 1 }}>
+                  <img
+                    src={createImagePreview}
+                    alt="Book Cover"
+                    style={{ width: 120, height: 120, objectFit: "cover" }}
+                  />
+                </Box>
+              )}
+              <Button variant="outlined" component="label">
+                {createImagePreview ? "Replace Image" : "Add Image"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={handleCreateImageChange}
+                />
+              </Button>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCreateClose}>Cancel</Button>
+          {createStep === 1 && (
+            <Button
+              onClick={handleCreateTitleSubmit}
+              variant="contained"
+              disabled={!createValues.book_Title}
+            >
+              Next
+            </Button>
+          )}
+          {createStep === 2 && (
+            <>
+              <Button onClick={handleCreateClose}>Skip</Button>
+              <Button
+                onClick={handleCreateImageSubmit}
+                variant="contained"
+                disabled={!createImageFile}
+              >
+                Upload Image
+              </Button>
+            </>
+          )}
+        </DialogActions>
+      </Dialog>
       {/* Edit Dialog */}
       <Dialog open={editOpen} onClose={handleEditClose} maxWidth="md" fullWidth>
         <DialogTitle>Edit Book</DialogTitle>
@@ -415,6 +651,32 @@ export default function BookGrid() {
           <Button onClick={handleStatusSave} variant="contained">
             Save
           </Button>
+        </DialogActions>
+      </Dialog>
+      {/* Image Zoom Dialog */}
+      <Dialog
+        open={zoomImageOpen}
+        onClose={() => setZoomImageOpen(false)}
+        maxWidth="md"
+      >
+        <DialogTitle>Book Image</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            <img
+              src={zoomImageSrc}
+              alt="Zoomed Book"
+              style={{
+                width: "100%",
+                maxWidth: 600,
+                height: "auto",
+                display: "block",
+                margin: "0 auto",
+              }}
+            />
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setZoomImageOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
       <Snackbar

@@ -22,6 +22,7 @@ const pageNames = {
   "/account": "Account",
   "/book": "Book",
   "/feedback": "Feedback",
+  "/chapter": "Chapter",
   // Add more routes as needed
 };
 

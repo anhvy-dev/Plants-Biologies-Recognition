@@ -13,12 +13,14 @@ import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import InfoRoundedIcon from "@mui/icons-material/InfoRounded";
 import HelpRoundedIcon from "@mui/icons-material/HelpRounded";
 import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
+import BookmarksRoundedIcon from "@mui/icons-material/BookmarksRounded";
 import MenuButton from "./MenuButton";
 
 const mainListItems = [
   { text: "Home", icon: <HomeRoundedIcon />, path: "/dashboard" },
   { text: "Account", icon: <PeopleRoundedIcon />, path: "/account" },
   { text: "Book", icon: <MenuBookRoundedIcon />, path: "/book" },
+  { text: "Chapter", icon: <BookmarksRoundedIcon />, path: "/chapter" },
   { text: "Feedback", icon: <AssignmentRoundedIcon />, path: "/feedback" },
 ];
 

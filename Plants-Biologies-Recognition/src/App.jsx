@@ -6,11 +6,12 @@ import LandingPage from "./landing-page/LandingPage";
 import Signin from "./sign-in/SignIn";
 import Signup from "./sign-up/SignUp";
 
-import Admin from "./admin/Admin";
+import Admin from "./admin/admin";
 import Account from "./admin/pages/Account";
 import Dashboard from "./admin/pages/Dashboard";
 import Feedback from "./admin/pages/Feedback";
 import Book from "./admin/pages/Book";
+import Chapter from "./admin/components/ChapterGrid";
 
 import Student from "./student/Student";
 
@@ -58,6 +59,7 @@ const App = () => {
         { path: "account", element: <Account /> },
         { path: "feedback", element: <Feedback /> },
         { path: "book", element: <Book /> },
+        { path: "chapter", element: <Chapter /> },
       ],
     },
   ];
