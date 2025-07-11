@@ -12,6 +12,7 @@ import Dashboard from "./admin/pages/Dashboard";
 import Feedback from "./admin/pages/Feedback";
 import Book from "./admin/pages/Book";
 import Chapter from "./admin/components/ChapterGrid";
+import Lesson from "./admin/components/LessonGrid";
 
 import Student from "./student/Student";
 
@@ -60,6 +61,7 @@ const App = () => {
         { path: "feedback", element: <Feedback /> },
         { path: "book", element: <Book /> },
         { path: "chapter", element: <Chapter /> },
+        { path: "lesson", element: <Lesson /> },
       ],
     },
   ];

@@ -14,6 +14,7 @@ import InfoRoundedIcon from "@mui/icons-material/InfoRounded";
 import HelpRoundedIcon from "@mui/icons-material/HelpRounded";
 import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
 import BookmarksRoundedIcon from "@mui/icons-material/BookmarksRounded";
+import BookmarkRoundedIcon from "@mui/icons-material/BookmarkRounded";
 import MenuButton from "./MenuButton";
 
 const mainListItems = [
@@ -21,6 +22,7 @@ const mainListItems = [
   { text: "Account", icon: <PeopleRoundedIcon />, path: "/account" },
   { text: "Book", icon: <MenuBookRoundedIcon />, path: "/book" },
   { text: "Chapter", icon: <BookmarksRoundedIcon />, path: "/chapter" },
+  { text: "Lesson", icon: <BookmarkRoundedIcon />, path: "/lesson" },
   { text: "Feedback", icon: <AssignmentRoundedIcon />, path: "/feedback" },
 ];
 

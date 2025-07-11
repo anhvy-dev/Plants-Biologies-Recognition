@@ -1,0 +1,546 @@
+import * as React from "react";
+import { DataGrid } from "@mui/x-data-grid";
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
+import IconButton from "@mui/material/IconButton";
+import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
+import Chip from "@mui/material/Chip";
+import api from "../../config/axios";
+import Snackbar from "@mui/material/Snackbar";
+import MuiAlert from "@mui/material/Alert";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
+import Button from "@mui/material/Button";
+import TextField from "@mui/material/TextField";
+import MenuItem from "@mui/material/MenuItem";
+import Select from "@mui/material/Select";
+import FormControl from "@mui/material/FormControl";
+import InputLabel from "@mui/material/InputLabel";
+import RichTextEditor from "./RichTextEditor";
+import { storage } from "../../config/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import CircularProgress from "@mui/material/CircularProgress";
+
+const columnsBase = (
+  handleDelete,
+  handleEdit,
+  handleStatusClick,
+  handleContentClick
+) => [
+  { field: "lesson_Id", headerName: "ID", width: 220 },
+  { field: "lesson_Title", headerName: "Title", width: 220 },
+  {
+    field: "content",
+    headerName: "Content",
+    width: 300,
+    renderCell: (params) => (
+      <Button
+        variant="text"
+        onClick={() => handleContentClick(params.row)}
+        sx={{
+          textTransform: "none",
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          maxWidth: 260,
+        }}
+      >
+        View Content
+      </Button>
+    ),
+  },
+
+  {
+    field: "status",
+    headerName: "Status",
+    width: 120,
+    renderCell: (params) => (
+      <Chip
+        label={params.row.status}
+        color={
+          params.row.status === "Approved"
+            ? "success"
+            : params.row.status === "Rejected"
+            ? "error"
+            : "default"
+        }
+        size="small"
+        variant="outlined"
+        onClick={() => handleStatusClick(params.row)}
+        sx={{ cursor: "pointer" }}
+      />
+    ),
+  },
+  {
+    field: "rejectionReason",
+    headerName: "Reject Reason",
+    width: 220,
+    renderCell: (params) => params.row.rejectionReason || "",
+  },
+  {
+    field: "edit",
+    headerName: "Edit",
+    width: 80,
+    sortable: false,
+    filterable: false,
+    renderCell: (params) => (
+      <IconButton
+        color="primary"
+        size="small"
+        onClick={() => handleEdit(params.row)}
+      >
+        <EditIcon />
+      </IconButton>
+    ),
+  },
+  {
+    field: "delete",
+    headerName: "Delete",
+    width: 80,
+    sortable: false,
+    filterable: false,
+    renderCell: (params) => (
+      <IconButton
+        color="error"
+        size="small"
+        onClick={() => handleDelete(params.row.lesson_Id)}
+      >
+        <DeleteIcon />
+      </IconButton>
+    ),
+  },
+];
+
+export default function LessonGrid() {
+  const [lessons, setLessons] = React.useState([]);
+  const [books, setBooks] = React.useState([]);
+  const [chapters, setChapters] = React.useState([]);
+  const [selectedBook, setSelectedBook] = React.useState("");
+  const [selectedChapter, setSelectedChapter] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const [snackbar, setSnackbar] = React.useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+
+  // Edit dialog state
+  const [editOpen, setEditOpen] = React.useState(false);
+  const [editLesson, setEditLesson] = React.useState(null);
+  const [editValues, setEditValues] = React.useState({
+    lesson_Title: "",
+    status: "",
+    rejectionReason: "",
+  });
+  const [editContent, setEditContent] = React.useState("");
+
+  // Status dialog state
+  const [statusDialogOpen, setStatusDialogOpen] = React.useState(false);
+  const [statusLesson, setStatusLesson] = React.useState(null);
+  const [statusValue, setStatusValue] = React.useState("");
+  const [statusReason, setStatusReason] = React.useState("");
+
+  // Content dialog state
+  const [contentDialogOpen, setContentDialogOpen] = React.useState(false);
+  const [contentDialogLesson, setContentDialogLesson] = React.useState(null);
+  const [contentDialogHtml, setContentDialogHtml] = React.useState("");
+  const [contentDialogLoading, setContentDialogLoading] = React.useState(false);
+
+  // Fetch books for menu
+  React.useEffect(() => {
+    api
+      .get("/Book/search")
+      .then((res) => setBooks(res.data))
+      .catch(() => setBooks([]));
+  }, []);
+
+  // Fetch chapters for selected book
+  React.useEffect(() => {
+    if (!selectedBook) {
+      setChapters([]);
+      setSelectedChapter("");
+      return;
+    }
+    api
+      .get(`/Chapter/book/${selectedBook}`)
+      .then((res) => setChapters(res.data))
+      .catch(() => setChapters([]));
+  }, [selectedBook]);
+
+  // Fetch lessons for selected chapter
+  const fetchLessons = React.useCallback(() => {
+    if (!selectedChapter) {
+      setLessons([]);
+      return;
+    }
+    setLoading(true);
+    api
+      .get(`/Lesson/chapter/${selectedChapter}`)
+      .then((res) => setLessons(res.data))
+      .catch(() => setLessons([]))
+      .finally(() => setLoading(false));
+  }, [selectedChapter]);
+
+  React.useEffect(() => {
+    fetchLessons();
+  }, [fetchLessons]);
+
+  // CRUD handlers
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this lesson?")) return;
+    try {
+      await api.delete(`/Lesson/${id}`);
+      setSnackbar({
+        open: true,
+        message: "Lesson deleted successfully.",
+        severity: "success",
+      });
+      fetchLessons();
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: error?.response?.data?.message || "Failed to delete lesson.",
+        severity: "error",
+      });
+    }
+  };
+
+  const handleEdit = async (lesson) => {
+    setEditLesson(lesson);
+    setEditValues({
+      lesson_Title: lesson.lesson_Title,
+      status: lesson.status,
+      rejectionReason: lesson.rejectionReason || "",
+    });
+
+    // If content is a Firebase Storage URL, fetch the HTML
+    if (lesson.content && lesson.content.startsWith("http")) {
+      try {
+        const res = await fetch(lesson.content);
+        const html = await res.text();
+        setEditContent(html);
+      } catch {
+        setEditContent("<i>Failed to load content.</i>");
+      }
+    } else {
+      setEditContent(lesson.content || "");
+    }
+
+    setEditOpen(true);
+  };
+
+  // Handle changes in the edit dialog's text fields
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditValues((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  // Upload content HTML to Firebase and return URL
+  const uploadContentToFirebase = async (html, lessonId) => {
+    const blob = new Blob([html], { type: "text/html" });
+    const storageRef = ref(storage, `lessons/${lessonId}/content.html`);
+    await uploadBytes(storageRef, blob);
+    return await getDownloadURL(storageRef);
+  };
+
+  const handleEditSubmit = async () => {
+    try {
+      let contentUrl = editLesson.content;
+      // Always upload new content if changed
+      if (editContent !== editLesson.content) {
+        contentUrl = await uploadContentToFirebase(
+          editContent,
+          editLesson.lesson_Id
+        );
+      }
+      await api.put(`/Lesson/${editLesson.lesson_Id}`, {
+        lesson_Id: editLesson.lesson_Id,
+        lesson_Title: editValues.lesson_Title,
+        content: contentUrl,
+        status: "Pending",
+        rejectionReason: editValues.rejectionReason,
+      });
+      setSnackbar({
+        open: true,
+        message: "Lesson updated successfully.",
+        severity: "success",
+      });
+      setEditOpen(false);
+      fetchLessons();
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: error?.response?.data?.message || "Failed to update lesson.",
+        severity: "error",
+      });
+    }
+  };
+
+  // Status change
+  const handleStatusClick = (lesson) => {
+    setStatusLesson(lesson);
+    setStatusValue(lesson.status);
+    setStatusReason(lesson.rejectionReason || "");
+    setStatusDialogOpen(true);
+  };
+
+  const handleStatusSave = async () => {
+    if (statusValue === "Rejected" && !statusReason) {
+      setSnackbar({
+        open: true,
+        message: "Rejection reason is required when status is Rejected.",
+        severity: "error",
+      });
+      return;
+    }
+    try {
+      await api.put(`/Lesson/${statusLesson.lesson_Id}/status`, {
+        status: statusValue,
+        rejectionReason: statusValue === "Rejected" ? statusReason : "",
+      });
+      setSnackbar({
+        open: true,
+        message: "Status updated successfully.",
+        severity: "success",
+      });
+      setStatusDialogOpen(false);
+      fetchLessons();
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: error?.response?.data?.message || "Failed to update status.",
+        severity: "error",
+      });
+    }
+  };
+
+  const handleSnackbarClose = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
+
+  const handleEditClose = () => {
+    setEditOpen(false);
+    setEditLesson(null);
+    setEditValues({
+      lesson_Title: "",
+      status: "",
+      rejectionReason: "",
+    });
+  };
+
+  const handleContentClick = async (lesson) => {
+    setContentDialogLesson(lesson);
+    setContentDialogHtml("");
+    setContentDialogLoading(true);
+    // If content is a Firebase Storage URL, fetch the HTML
+    if (lesson.content && lesson.content.startsWith("http")) {
+      try {
+        const res = await fetch(lesson.content);
+        const html = await res.text();
+        setContentDialogHtml(html);
+      } catch {
+        setContentDialogHtml("<i>Failed to load content.</i>");
+      }
+    } else {
+      setContentDialogHtml(lesson.content || "<i>No content</i>");
+    }
+    setContentDialogLoading(false);
+    setContentDialogOpen(true);
+  };
+
+  const handleContentDialogClose = () => {
+    setContentDialogOpen(false);
+    setContentDialogLesson(null);
+    setContentDialogHtml("");
+  };
+
+  return (
+    <Box sx={{ width: "100%", maxWidth: { sm: "100%", md: "1700px" } }}>
+      <Typography component="h2" variant="h6" sx={{ mb: 2 }}>
+        Lesson Management
+      </Typography>
+      <FormControl sx={{ minWidth: 300, mb: 2, mr: 2 }}>
+        <InputLabel id="book-select-label">Choose Book</InputLabel>
+        <Select
+          labelId="book-select-label"
+          value={selectedBook}
+          label="Choose Book"
+          onChange={(e) => {
+            setSelectedBook(e.target.value);
+            setSelectedChapter("");
+          }}
+        >
+          {books.map((book) => (
+            <MenuItem key={book.book_Id} value={book.book_Id}>
+              {book.book_Title}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+      <FormControl sx={{ minWidth: 300, mb: 2 }}>
+        <InputLabel id="chapter-select-label">Choose Chapter</InputLabel>
+        <Select
+          labelId="chapter-select-label"
+          value={selectedChapter}
+          label="Choose Chapter"
+          onChange={(e) => setSelectedChapter(e.target.value)}
+          disabled={!selectedBook}
+        >
+          {chapters.map((chapter) => (
+            <MenuItem key={chapter.chapter_Id} value={chapter.chapter_Id}>
+              {chapter.chapter_Title}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+      <Box sx={{ width: "100%" }}>
+        <DataGrid
+          rows={lessons}
+          columns={columnsBase(
+            handleDelete,
+            handleEdit,
+            handleStatusClick,
+            handleContentClick,
+            books,
+            chapters
+          )}
+          getRowId={(row) => row.lesson_Id}
+          loading={loading}
+          pageSize={5}
+          rowsPerPageOptions={[5, 10, 20]}
+          disableSelectionOnClick
+          autoHeight
+        />
+      </Box>
+      {/* Edit Dialog */}
+      <Dialog open={editOpen} onClose={handleEditClose} maxWidth="md" fullWidth>
+        <DialogTitle>Edit Lesson</DialogTitle>
+        <DialogContent
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+            mt: 1,
+          }}
+        >
+          <TextField
+            label="Title"
+            name="lesson_Title"
+            value={editValues.lesson_Title}
+            onChange={handleEditChange}
+            fullWidth
+            variant="outlined"
+            sx={{ mt: 3 }}
+          />
+          <RichTextEditor value={editContent} onChange={setEditContent} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleEditClose}>Cancel</Button>
+          <Button onClick={handleEditSubmit} variant="contained">
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {/* Status Dialog */}
+      <Dialog
+        open={statusDialogOpen}
+        onClose={() => setStatusDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Change Status</DialogTitle>
+        <DialogContent
+          sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}
+        >
+          <TextField
+            select
+            label="Status"
+            value={statusValue}
+            onChange={(e) => setStatusValue(e.target.value)}
+            fullWidth
+            variant="outlined"
+            sx={{ mt: 2 }}
+          >
+            <MenuItem value="Pending">Pending</MenuItem>
+            <MenuItem value="Approved">Approved</MenuItem>
+            <MenuItem value="Rejected">Rejected</MenuItem>
+          </TextField>
+          {statusValue === "Rejected" && (
+            <TextField
+              label="Rejection Reason"
+              value={statusReason}
+              onChange={(e) => setStatusReason(e.target.value)}
+              fullWidth
+              required
+              variant="outlined"
+              sx={{ mt: 2 }}
+              error={!statusReason}
+              helperText={!statusReason ? "Rejection reason is required." : ""}
+            />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setStatusDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleStatusSave} variant="contained">
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {/* Content Dialog */}
+      <Dialog
+        open={contentDialogOpen}
+        onClose={handleContentDialogClose}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          {contentDialogLesson?.lesson_Title || "Lesson Content"}
+        </DialogTitle>
+        <DialogContent dividers sx={{ minHeight: 200 }}>
+          {contentDialogLoading ? (
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                minHeight: 100,
+              }}
+            >
+              <CircularProgress />
+            </Box>
+          ) : (
+            <div
+              style={{ maxHeight: 400, overflow: "auto" }}
+              dangerouslySetInnerHTML={{ __html: contentDialogHtml }}
+            />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleContentDialogClose}>Close</Button>
+        </DialogActions>
+      </Dialog>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <MuiAlert
+          elevation={6}
+          variant="filled"
+          onClose={handleSnackbarClose}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </MuiAlert>
+      </Snackbar>
+    </Box>
+  );
+}

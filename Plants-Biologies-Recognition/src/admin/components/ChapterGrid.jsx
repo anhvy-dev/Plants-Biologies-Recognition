@@ -126,7 +126,7 @@ export default function ChapterGrid() {
     }
     setLoading(true);
     api
-      .get(`/Chapter/search?bookId=${selectedBook}`)
+      .get(`/Chapter/book/${selectedBook}`) // changed from /Chapter/search?bookId=...
       .then((res) => setChapters(res.data))
       .catch(() => setChapters([]))
       .finally(() => setLoading(false));
