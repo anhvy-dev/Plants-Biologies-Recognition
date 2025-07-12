@@ -19,6 +19,7 @@ import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
+import AddIcon from "@mui/icons-material/Add";
 
 const columnsBase = (handleDelete, handleEdit, handleStatusClick) => [
   { field: "chapter_Id", headerName: "ID", width: 220 },
@@ -110,10 +111,14 @@ export default function ChapterGrid() {
   const [statusValue, setStatusValue] = React.useState("");
   const [statusReason, setStatusReason] = React.useState("");
 
+  // Create dialog state
+  const [createOpen, setCreateOpen] = React.useState(false);
+  const [createTitle, setCreateTitle] = React.useState("");
+
   // Fetch books for menu
   React.useEffect(() => {
     api
-      .get("/Book/search")
+      .get("/Book/approved")
       .then((res) => setBooks(res.data))
       .catch(() => setBooks([]));
   }, []);
@@ -238,6 +243,50 @@ export default function ChapterGrid() {
     }
   };
 
+  const handleCreateOpen = () => {
+    setCreateTitle("");
+    setCreateOpen(true);
+  };
+
+  const handleCreateClose = () => {
+    setCreateOpen(false);
+    setCreateTitle("");
+  };
+
+  const handleCreateSubmit = async () => {
+    if (!createTitle.trim() || !selectedBook) {
+      setSnackbar({
+        open: true,
+        message: "Please select a book and enter a chapter title.",
+        severity: "error",
+      });
+      return;
+    }
+    try {
+      await api.post("/Chapter", {
+        book_Id: selectedBook,
+        chapter_Title: createTitle,
+        isActive: false, // Always false when status is Pending
+        status: "Pending",
+        rejectionReason: "",
+        lessons: [],
+      });
+      setSnackbar({
+        open: true,
+        message: "Chapter created successfully.",
+        severity: "success",
+      });
+      setCreateOpen(false);
+      fetchChapters();
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: error?.response?.data?.message || "Failed to create chapter.",
+        severity: "error",
+      });
+    }
+  };
+
   const handleSnackbarClose = () => {
     setSnackbar({ ...snackbar, open: false });
   };
@@ -257,21 +306,31 @@ export default function ChapterGrid() {
       <Typography component="h2" variant="h6" sx={{ mb: 2 }}>
         Chapter Management
       </Typography>
-      <FormControl sx={{ minWidth: 300, mb: 2 }}>
-        <InputLabel id="book-select-label">Choose Book</InputLabel>
-        <Select
-          labelId="book-select-label"
-          value={selectedBook}
-          label="Choose Book"
-          onChange={(e) => setSelectedBook(e.target.value)}
+      <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+        <FormControl sx={{ minWidth: 300, mr: 2 }}>
+          <InputLabel id="book-select-label">Choose Book</InputLabel>
+          <Select
+            labelId="book-select-label"
+            value={selectedBook}
+            label="Choose Book"
+            onChange={(e) => setSelectedBook(e.target.value)}
+          >
+            {books.map((book) => (
+              <MenuItem key={book.book_Id} value={book.book_Id}>
+                {book.book_Title}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={handleCreateOpen}
+          disabled={!selectedBook}
         >
-          {books.map((book) => (
-            <MenuItem key={book.book_Id} value={book.book_Id}>
-              {book.book_Title}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+          Create
+        </Button>
+      </Box>
       <Box sx={{ width: "100%" }}>
         <DataGrid
           rows={chapters}
@@ -354,6 +413,31 @@ export default function ChapterGrid() {
           <Button onClick={() => setStatusDialogOpen(false)}>Cancel</Button>
           <Button onClick={handleStatusSave} variant="contained">
             Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {/* Create Dialog */}
+      <Dialog
+        open={createOpen}
+        onClose={handleCreateClose}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Create Chapter</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Chapter Title"
+            value={createTitle}
+            onChange={(e) => setCreateTitle(e.target.value)}
+            fullWidth
+            autoFocus
+            sx={{ mt: 2 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCreateClose}>Cancel</Button>
+          <Button onClick={handleCreateSubmit} variant="contained">
+            Create
           </Button>
         </DialogActions>
       </Dialog>
