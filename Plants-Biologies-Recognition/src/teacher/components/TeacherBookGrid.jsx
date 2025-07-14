@@ -30,7 +30,6 @@ import AddIcon from "@mui/icons-material/Add";
 const columnsBase = (
   handleDelete,
   handleEdit,
-  handleStatusClick,
   setZoomImageSrc,
   setZoomImageOpen
 ) => [
@@ -91,8 +90,8 @@ const columnsBase = (
         }
         size="small"
         variant="outlined"
-        onClick={() => handleStatusClick(params.row)}
-        sx={{ cursor: "pointer" }}
+        // REMOVE onClick to make it read-only for teacher
+        sx={{ cursor: "default" }}
       />
     ),
   },
@@ -150,12 +149,6 @@ export default function BookGrid() {
   });
   const [imageFile, setImageFile] = React.useState(null);
   const [imagePreview, setImagePreview] = React.useState("");
-
-  // Status dialog state
-  const [statusDialogOpen, setStatusDialogOpen] = React.useState(false);
-  const [statusBook, setStatusBook] = React.useState(null);
-  const [statusValue, setStatusValue] = React.useState("");
-  const [statusReason, setStatusReason] = React.useState("");
 
   // Create dialog state
   const [createOpen, setCreateOpen] = React.useState(false);
@@ -314,45 +307,6 @@ export default function BookGrid() {
     }
   };
 
-  // Open status dialog
-  const handleStatusClick = (book) => {
-    setStatusBook(book);
-    setStatusValue(book.status);
-    setStatusReason(book.rejectionReason || "");
-    setStatusDialogOpen(true);
-  };
-
-  // Save status change
-  const handleStatusSave = async () => {
-    if (statusValue === "Rejected" && !statusReason) {
-      setSnackbar({
-        open: true,
-        message: "Rejection reason is required when status is Rejected.",
-        severity: "error",
-      });
-      return;
-    }
-    try {
-      await api.put(`/Book/${statusBook.book_Id}/status`, {
-        status: statusValue,
-        rejectionReason: statusValue === "Rejected" ? statusReason : "",
-      });
-      setSnackbar({
-        open: true,
-        message: "Status updated successfully.",
-        severity: "success",
-      });
-      setStatusDialogOpen(false);
-      fetchBooks();
-    } catch (error) {
-      setSnackbar({
-        open: true,
-        message: error?.response?.data?.message || "Failed to update status.",
-        severity: "error",
-      });
-    }
-  };
-
   const handleSnackbarClose = () => {
     setSnackbar({ ...snackbar, open: false });
   };
@@ -416,7 +370,6 @@ export default function BookGrid() {
           columns={columnsBase(
             handleDelete,
             handleEdit,
-            handleStatusClick,
             setZoomImageSrc,
             setZoomImageOpen
           )}
@@ -514,51 +467,6 @@ export default function BookGrid() {
         <DialogActions>
           <Button onClick={handleEditClose}>Cancel</Button>
           <Button onClick={handleEditSubmit} variant="contained">
-            Save
-          </Button>
-        </DialogActions>
-      </Dialog>
-      {/* Status Dialog */}
-      <Dialog
-        open={statusDialogOpen}
-        onClose={() => setStatusDialogOpen(false)}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle>Change Status</DialogTitle>
-        <DialogContent
-          sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}
-        >
-          <TextField
-            select
-            label="Status"
-            value={statusValue}
-            onChange={(e) => setStatusValue(e.target.value)}
-            fullWidth
-            variant="outlined"
-            sx={{ mt: 2 }}
-          >
-            <MenuItem value="Pending">Pending</MenuItem>
-            <MenuItem value="Approved">Approved</MenuItem>
-            <MenuItem value="Rejected">Rejected</MenuItem>
-          </TextField>
-          {statusValue === "Rejected" && (
-            <TextField
-              label="Rejection Reason"
-              value={statusReason}
-              onChange={(e) => setStatusReason(e.target.value)}
-              fullWidth
-              required
-              variant="outlined"
-              sx={{ mt: 2 }}
-              error={!statusReason}
-              helperText={!statusReason ? "Rejection reason is required." : ""}
-            />
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setStatusDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleStatusSave} variant="contained">
             Save
           </Button>
         </DialogActions>

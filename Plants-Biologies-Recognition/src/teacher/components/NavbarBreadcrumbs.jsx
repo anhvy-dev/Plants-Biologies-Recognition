@@ -18,8 +18,10 @@ const StyledBreadcrumbs = styled(Breadcrumbs)(({ theme }) => ({
 
 // Map pathnames to page names
 const pageNames = {
-  "/dashboard": "Home",
-  "/account": "Account",
+  "/report": "Report",
+  "/book": "Book",
+  "/chapter": "Chapter",
+  "/lesson": "Lesson",
   "/feedback": "Feedback",
   // Add more routes as needed
 };

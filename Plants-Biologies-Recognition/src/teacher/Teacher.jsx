@@ -6,7 +6,6 @@ import AppTheme from "../shared-theme/AppTheme.jsx";
 import SideMenu from "../teacher/components/SideMenu.jsx";
 import Header from "../teacher/components/Header.jsx";
 import MainGrid from "../teacher/components/MainGrid.jsx";
-import AccountGrid from "../teacher/components/AccountGrid.jsx";
 // import FeedbackGrid from "../dashboard/components/FeedbackGrid.jsx"; // Uncomment if you have this component
 import { alpha } from "@mui/material/styles";
 import { Routes, Route, Navigate } from "react-router-dom";

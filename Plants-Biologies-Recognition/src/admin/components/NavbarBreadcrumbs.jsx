@@ -23,6 +23,8 @@ const pageNames = {
   "/book": "Book",
   "/feedback": "Feedback",
   "/chapter": "Chapter",
+  "/lesson": "Lesson",
+  "/biology": "Biology",
   // Add more routes as needed
 };
 

@@ -9,6 +9,7 @@ import Typography from "@mui/material/Typography";
 import MenuContent from "./MenuContent";
 import OptionsMenu from "./OptionsMenu";
 import { useAuthStore } from "../../(auth)/store";
+import PlantLogo from "../../assets/plant-biology-education-high-resolution-logo.png";
 
 const drawerWidth = 240;
 
@@ -36,13 +37,21 @@ export default function SideMenu() {
         },
       }}
     >
+      {/* Logo at the top */}
       <Box
         sx={{
           display: "flex",
-          mt: "calc(var(--template-frame-height, 0px) + 4px)",
-          p: 1.5,
+          alignItems: "center",
+          justifyContent: "center",
+          py: 2,
         }}
-      ></Box>
+      >
+        <img
+          src={PlantLogo}
+          alt="Plant Biology Education"
+          style={{ maxWidth: 180, maxHeight: 48 }}
+        />
+      </Box>
       <Divider />
       <Box
         sx={{
@@ -66,7 +75,7 @@ export default function SideMenu() {
       >
         <Avatar
           sizes="small"
-          alt={authUser?.fullName || "User"}
+          alt="Riley Carter"
           src="/static/images/avatar/7.jpg"
           sx={{ width: 36, height: 36 }}
         />

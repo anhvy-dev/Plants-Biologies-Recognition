@@ -12,12 +12,16 @@ import AssignmentRoundedIcon from "@mui/icons-material/AssignmentRounded";
 import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import InfoRoundedIcon from "@mui/icons-material/InfoRounded";
 import HelpRoundedIcon from "@mui/icons-material/HelpRounded";
+import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
+import BookmarksRoundedIcon from "@mui/icons-material/BookmarksRounded";
+import BookmarkRoundedIcon from "@mui/icons-material/BookmarkRounded";
 import MenuButton from "./MenuButton";
 
 const mainListItems = [
-  { text: "Home", icon: <HomeRoundedIcon />, path: "/dashboard" },
-  { text: "Account", icon: <PeopleRoundedIcon />, path: "/account" },
-  { text: "Feedback", icon: <AssignmentRoundedIcon />, path: "/feedback" },
+  { text: "Report", icon: <HomeRoundedIcon />, path: "/report" },
+  { text: "Book", icon: <MenuBookRoundedIcon />, path: "/book" },
+  { text: "Chapter", icon: <BookmarksRoundedIcon />, path: "/chapter" },
+  { text: "Lesson", icon: <BookmarkRoundedIcon />, path: "/lesson" },
 ];
 
 const secondaryListItems = [

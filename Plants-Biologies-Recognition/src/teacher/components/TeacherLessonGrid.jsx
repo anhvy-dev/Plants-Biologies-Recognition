@@ -19,18 +19,13 @@ import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
-import RichTextEditor from "./RichTextEditor";
+import RichTextEditor from "../../admin/components/RichTextEditor";
 import { storage } from "../../config/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import CircularProgress from "@mui/material/CircularProgress";
 import AddIcon from "@mui/icons-material/Add";
 
-const columnsBase = (
-  handleDelete,
-  handleEdit,
-  handleStatusClick,
-  handleContentClick
-) => [
+const columnsBase = (handleDelete, handleEdit, handleContentClick) => [
   { field: "lesson_Id", headerName: "ID", width: 220 },
   { field: "lesson_Title", headerName: "Title", width: 220 },
   {
@@ -53,7 +48,6 @@ const columnsBase = (
       </Button>
     ),
   },
-
   {
     field: "status",
     headerName: "Status",
@@ -70,8 +64,7 @@ const columnsBase = (
         }
         size="small"
         variant="outlined"
-        onClick={() => handleStatusClick(params.row)}
-        sx={{ cursor: "pointer" }}
+        sx={{ cursor: "default" }} // read-only for teacher
       />
     ),
   },
@@ -137,12 +130,6 @@ export default function LessonGrid() {
     rejectionReason: "",
   });
   const [editContent, setEditContent] = React.useState("");
-
-  // Status dialog state
-  const [statusDialogOpen, setStatusDialogOpen] = React.useState(false);
-  const [statusLesson, setStatusLesson] = React.useState(null);
-  const [statusValue, setStatusValue] = React.useState("");
-  const [statusReason, setStatusReason] = React.useState("");
 
   // Content dialog state
   const [contentDialogOpen, setContentDialogOpen] = React.useState(false);
@@ -287,44 +274,6 @@ export default function LessonGrid() {
     }
   };
 
-  // Status change
-  const handleStatusClick = (lesson) => {
-    setStatusLesson(lesson);
-    setStatusValue(lesson.status);
-    setStatusReason(lesson.rejectionReason || "");
-    setStatusDialogOpen(true);
-  };
-
-  const handleStatusSave = async () => {
-    if (statusValue === "Rejected" && !statusReason) {
-      setSnackbar({
-        open: true,
-        message: "Rejection reason is required when status is Rejected.",
-        severity: "error",
-      });
-      return;
-    }
-    try {
-      await api.put(`/Lesson/${statusLesson.lesson_Id}/status`, {
-        status: statusValue,
-        rejectionReason: statusValue === "Rejected" ? statusReason : "",
-      });
-      setSnackbar({
-        open: true,
-        message: "Status updated successfully.",
-        severity: "success",
-      });
-      setStatusDialogOpen(false);
-      fetchLessons();
-    } catch (error) {
-      setSnackbar({
-        open: true,
-        message: error?.response?.data?.message || "Failed to update status.",
-        severity: "error",
-      });
-    }
-  };
-
   // Create handlers
   const handleCreateOpen = () => {
     setCreateTitle("");
@@ -464,14 +413,7 @@ export default function LessonGrid() {
       <Box sx={{ width: "100%" }}>
         <DataGrid
           rows={lessons}
-          columns={columnsBase(
-            handleDelete,
-            handleEdit,
-            handleStatusClick,
-            handleContentClick,
-            books,
-            chapters
-          )}
+          columns={columnsBase(handleDelete, handleEdit, handleContentClick)}
           getRowId={(row) => row.lesson_Id}
           loading={loading}
           pageSize={5}
@@ -505,51 +447,6 @@ export default function LessonGrid() {
         <DialogActions>
           <Button onClick={handleEditClose}>Cancel</Button>
           <Button onClick={handleEditSubmit} variant="contained">
-            Save
-          </Button>
-        </DialogActions>
-      </Dialog>
-      {/* Status Dialog */}
-      <Dialog
-        open={statusDialogOpen}
-        onClose={() => setStatusDialogOpen(false)}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle>Change Status</DialogTitle>
-        <DialogContent
-          sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}
-        >
-          <TextField
-            select
-            label="Status"
-            value={statusValue}
-            onChange={(e) => setStatusValue(e.target.value)}
-            fullWidth
-            variant="outlined"
-            sx={{ mt: 2 }}
-          >
-            <MenuItem value="Pending">Pending</MenuItem>
-            <MenuItem value="Approved">Approved</MenuItem>
-            <MenuItem value="Rejected">Rejected</MenuItem>
-          </TextField>
-          {statusValue === "Rejected" && (
-            <TextField
-              label="Rejection Reason"
-              value={statusReason}
-              onChange={(e) => setStatusReason(e.target.value)}
-              fullWidth
-              required
-              variant="outlined"
-              sx={{ mt: 2 }}
-              error={!statusReason}
-              helperText={!statusReason ? "Rejection reason is required." : ""}
-            />
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setStatusDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleStatusSave} variant="contained">
             Save
           </Button>
         </DialogActions>

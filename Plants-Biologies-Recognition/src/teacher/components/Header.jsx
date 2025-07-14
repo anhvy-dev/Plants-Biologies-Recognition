@@ -6,8 +6,6 @@ import NavbarBreadcrumbs from "./NavbarBreadcrumbs.jsx";
 import MenuButton from "./MenuButton.jsx";
 import ColorModeIconDropdown from "../../shared-theme/ColorModeIconDropdown.jsx";
 
-import Search from "./Search.jsx";
-
 export default function Header() {
   return (
     <Stack
@@ -23,9 +21,9 @@ export default function Header() {
         alignItems: "center",
         justifyContent: "space-between",
         maxWidth: { sm: "100%", md: "1700px" },
-        pt: 0.5,                // Reduced top padding
-        pb: 0.5,                // Add bottom padding for balance
-        minHeight: 48,          // Reduce min height (default is 64)
+        pt: 0.5, // Reduced top padding
+        pb: 0.5, // Add bottom padding for balance
+        minHeight: 48, // Reduce min height (default is 64)
         backgroundColor: "background.paper",
         borderBottom: 1,
         borderColor: "divider",
@@ -34,7 +32,6 @@ export default function Header() {
     >
       <NavbarBreadcrumbs />
       <Stack direction="row" sx={{ gap: 1 }}>
-        <Search />
         <CustomDatePicker />
         <MenuButton showBadge aria-label="Open notifications">
           <NotificationsRoundedIcon />

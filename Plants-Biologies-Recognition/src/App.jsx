@@ -7,17 +7,21 @@ import Signin from "./sign-in/SignIn";
 import Signup from "./sign-up/SignUp";
 
 import Admin from "./admin/Admin";
-import Account from "./admin/pages/Account";
-import Dashboard from "./admin/pages/Dashboard";
-import Feedback from "./admin/pages/Feedback";
-import Book from "./admin/pages/Book";
+import Account from "./admin/components/AccountGrid";
+import Dashboard from "./admin/components/MainGrid";
+import Feedback from "./admin/components/AccountGrid";
+import Book from "./admin/components/BookGrid";
 import Chapter from "./admin/components/ChapterGrid";
 import Lesson from "./admin/components/LessonGrid";
+import Biology from "./admin/components/BiologyGrid";
 
 import Student from "./student/Student";
 
 import Teacher from "./teacher/Teacher";
-import Report from "./teacher/pages/Report";
+import Report from "./teacher/components/MainGrid";
+import TeacherBook from "./teacher/components/TeacherBookGrid";
+import TeacherChapter from "./teacher/components/TeacherChapterGrid";
+import TeacherLesson from "./teacher/components/TeacherLessonGrid";
 
 import { createRoutes } from "./routes/utils";
 import { useAuthStore } from "./(auth)/store";
@@ -49,7 +53,12 @@ const App = () => {
     {
       element: <Teacher />,
       accessKey: "Teacher",
-      children: [{ path: "report", element: <Report /> }],
+      children: [
+        { path: "report", element: <Report /> },
+        { path: "book", element: <TeacherBook /> },
+        { path: "chapter", element: <TeacherChapter /> },
+        { path: "lesson", element: <TeacherLesson /> },
+      ],
     },
     {
       element: <Admin />,
@@ -62,6 +71,7 @@ const App = () => {
         { path: "book", element: <Book /> },
         { path: "chapter", element: <Chapter /> },
         { path: "lesson", element: <Lesson /> },
+        { path: "biology", element: <Biology /> },
       ],
     },
   ];
