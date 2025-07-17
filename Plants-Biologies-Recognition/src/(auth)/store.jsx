@@ -32,18 +32,21 @@ export const useAuthStore = create()(
                   "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"
                 ];
 
+              // Use response structure from backend
               set({
                 isAuthenticated: true,
                 isKeepLogin: input.isKeepLogin,
                 accessToken: res.data.token,
                 authUser: {
-                  id: res.data.user.userId,
-                  name: name || res.data.user.name,
-                  role: role || res.data.user.role,
+                  id: res.data.user_Id,
+                  name: res.data.fullName || name,
+                  role: res.data.role || role,
+                  email: res.data.email,
+                  account: res.data.account,
                 },
               });
 
-              resolve(res.data.user);
+              resolve(res.data);
             })
             .catch((error) => {
               reject(error);

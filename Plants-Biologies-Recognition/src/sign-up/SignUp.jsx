@@ -23,6 +23,7 @@ import RadioGroup from "@mui/material/RadioGroup";
 import PlantLogo from "../assets/plant-biology-education-high-resolution-logo.png";
 import Snackbar from "@mui/material/Snackbar";
 import MuiAlert from "@mui/material/Alert";
+import GoogleSignUp from "./components/GoogleSignUp.jsx";
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: "flex",
@@ -67,8 +68,7 @@ const SignUpContainer = styled(Stack)(({ theme }) => ({
 }));
 
 export default function SignUp(props) {
-  const [accountError] = React.useState(false);
-  const [accountErrorMessage] = React.useState("");
+  const navigate = useNavigate();
   const [passwordError, setPasswordError] = React.useState(false);
   const [passwordErrorMessage, setPasswordErrorMessage] = React.useState("");
   const [nameError, setNameError] = React.useState(false);
@@ -76,19 +76,44 @@ export default function SignUp(props) {
   const [loading, setLoading] = React.useState(false);
   const [apiError, setApiError] = React.useState("");
   const [apiSuccess, setApiSuccess] = React.useState("");
-  const [role, setRole] = React.useState("Student");
+  const [accountError, setAccountError] = React.useState(false);
+  const [accountErrorMessage, setAccountErrorMessage] = React.useState("");
+  const [emailError, setEmailError] = React.useState(false);
+  const [emailErrorMessage, setEmailErrorMessage] = React.useState("");
   const [snackbar, setSnackbar] = React.useState({
     open: false,
     message: "",
     severity: "success",
   });
-  const navigate = useNavigate();
+
+  // Only allow Student role
+  const role = "Student";
 
   const validateInputs = () => {
     const password = document.getElementById("password");
     const name = document.getElementById("name");
+    const account = document.getElementById("account");
+    const email = document.getElementById("email");
 
     let isValid = true;
+
+    if (!account.value || account.value.length < 3) {
+      setAccountError(true);
+      setAccountErrorMessage("Account must be at least 3 characters.");
+      isValid = false;
+    } else {
+      setAccountError(false);
+      setAccountErrorMessage("");
+    }
+
+    if (!email.value || !/\S+@\S+\.\S+/.test(email.value)) {
+      setEmailError(true);
+      setEmailErrorMessage("Valid email is required.");
+      isValid = false;
+    } else {
+      setEmailError(false);
+      setEmailErrorMessage("");
+    }
 
     if (!password.value || password.value.length < 6) {
       setPasswordError(true);
@@ -121,15 +146,16 @@ export default function SignUp(props) {
     const data = new FormData(event.currentTarget);
     const fullName = data.get("name");
     const account = data.get("account");
+    const email = data.get("email");
     const password = data.get("password");
-    const roleValue = data.get("role");
 
     try {
       setLoading(true);
       await api.post("Authentication/register", {
         account,
+        email,
         password,
-        role: roleValue,
+        role,
         fullName,
         isActive: true,
       });
@@ -161,6 +187,37 @@ export default function SignUp(props) {
 
   const handleSnackbarClose = () => {
     setSnackbar({ ...snackbar, open: false });
+  };
+
+  // Google sign up handlers
+  const [googleLoading, setGoogleLoading] = React.useState(false);
+
+  const handleGoogleSuccess = () => {
+    setApiSuccess("Registration successful with Google! You can now sign in.");
+    setSnackbar({
+      open: true,
+      message: "Registration successful! Redirecting to sign in...",
+      severity: "success",
+    });
+    setTimeout(() => {
+      navigate("/sign-in");
+    }, 3000);
+  };
+
+  const handleGoogleError = (error) => {
+    setApiError(
+      error.response?.data?.message ||
+        error.message ||
+        "Google registration failed."
+    );
+    setSnackbar({
+      open: true,
+      message:
+        error.response?.data?.message ||
+        error.message ||
+        "Google registration failed.",
+      severity: "error",
+    });
   };
 
   return (
@@ -217,7 +274,7 @@ export default function SignUp(props) {
             </FormControl>
             <FormControl>
               <FormLabel htmlFor="account" sx={{ textAlign: "left" }}>
-                Account
+                Username
               </FormLabel>
               <TextField
                 required
@@ -225,11 +282,28 @@ export default function SignUp(props) {
                 id="account"
                 placeholder="Username"
                 name="account"
-                autoComplete="account"
+                autoComplete="username"
                 variant="outlined"
                 error={accountError}
                 helperText={accountErrorMessage}
-                color={passwordError ? "error" : "primary"}
+                color={accountError ? "error" : "primary"}
+              />
+            </FormControl>
+            <FormControl>
+              <FormLabel htmlFor="email" sx={{ textAlign: "left" }}>
+                Email
+              </FormLabel>
+              <TextField
+                required
+                fullWidth
+                id="email"
+                placeholder="Email"
+                name="email"
+                autoComplete="email"
+                variant="outlined"
+                error={emailError}
+                helperText={emailErrorMessage}
+                color={emailError ? "error" : "primary"}
               />
             </FormControl>
             <FormControl>
@@ -249,29 +323,6 @@ export default function SignUp(props) {
                 helperText={passwordErrorMessage}
                 color={passwordError ? "error" : "primary"}
               />
-            </FormControl>
-            <FormControl>
-              <FormLabel sx={{ textAlign: "left" }}>Role</FormLabel>
-              <RadioGroup
-                row
-                name="role"
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                sx={{ justifyContent: "space-between", display: "flex" }} // add flex styling
-              >
-                <FormControlLabel
-                  value="Student"
-                  control={<Radio />}
-                  label="Student"
-                  sx={{ flex: 1, justifyContent: "flex-start", marginRight: 2 }}
-                />
-                <FormControlLabel
-                  value="Teacher"
-                  control={<Radio />}
-                  label="Teacher"
-                  sx={{ flex: 1, justifyContent: "flex-end", marginLeft: 2 }}
-                />
-              </RadioGroup>
             </FormControl>
             {apiError && (
               <Typography color="error" sx={{ mt: 1 }}>
@@ -296,14 +347,12 @@ export default function SignUp(props) {
             <Typography sx={{ color: "text.secondary" }}>or</Typography>
           </Divider>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <Button
-              fullWidth
-              variant="outlined"
-              onClick={() => alert("Sign up with Google")}
-              startIcon={<GoogleIcon />}
-            >
-              Sign up with Google
-            </Button>
+            <GoogleSignUp
+              loading={googleLoading}
+              setLoading={setGoogleLoading}
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+            />
             <Typography sx={{ textAlign: "center" }}>
               Already have an account?{" "}
               <Link

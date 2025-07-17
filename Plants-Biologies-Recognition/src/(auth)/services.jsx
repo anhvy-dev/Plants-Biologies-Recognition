@@ -1,9 +1,9 @@
 import api from "../config/axios.jsx";
 export const authApi = {
-  login: ({ account, password }) =>
+  login: ({ identifier, password }) =>
     api.post(
       "Authentication/login",
-      { account, password },
+      { identifier, password },
       { headers: { "Content-Type": "application/json" } }
     ),
 };

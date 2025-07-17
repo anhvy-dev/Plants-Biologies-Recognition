@@ -18,12 +18,13 @@ import AppTheme from "../shared-theme/AppTheme.jsx";
 import ColorModeSelect from "../shared-theme/ColorModeSelect.jsx";
 import { GoogleIcon } from "./components/CustomIcons.jsx";
 import { Link as RouterLink } from "react-router-dom";
-// import api from "../config/axios.jsx";
+import api from "../config/axios.jsx";
 import PlantLogo from "../assets/plant-biology-education-high-resolution-logo.png";
 import { useAuthStore } from "../(auth)/store";
 import { useMutation } from "@tanstack/react-query";
 import Snackbar from "@mui/material/Snackbar";
 import MuiAlert from "@mui/material/Alert";
+import { signUpWithGoogle } from "../config/firebase.jsx";
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: "flex",
@@ -68,7 +69,7 @@ const SignInContainer = styled(Stack)(({ theme }) => ({
 }));
 
 export default function SignIn(props) {
-  const [accountError] = React.useState(false);
+  const [identifierError] = React.useState(false);
   const [passwordError, setPasswordError] = React.useState(false);
   const [passwordErrorMessage, setPasswordErrorMessage] = React.useState("");
   const [open, setOpen] = React.useState(false);
@@ -79,6 +80,7 @@ export default function SignIn(props) {
     message: "",
     severity: "success",
   });
+  const [googleLoading, setGoogleLoading] = React.useState(false);
   const { login } = useAuthStore();
 
   const handleSnackbarClose = () => {
@@ -98,8 +100,8 @@ export default function SignIn(props) {
       console.error("Login error:", error);
       const errorMessage =
         error.message === "username_or_password_incorrect"
-          ? "Incorrect username or password"
-          : "Account not found. Please try again.";
+          ? "Incorrect username/email or password"
+          : "Identifier not found. Please try again.";
       setSnackbar({ open: true, message: errorMessage, severity: "error" });
     },
   });
@@ -119,38 +121,41 @@ export default function SignIn(props) {
     }
     const data = new FormData(event.currentTarget);
     const values = {
-      account: data.get("account"),
+      identifier: data.get("identifier"), // Use "identifier" for backend
       password: data.get("password"),
     };
     loginMutation.mutate(values); // Pass values to the mutate function
   };
-  //   const data = new FormData(event.currentTarget);
-  //   const account = data.get("account");
-  //   const password = data.get("password");
 
-  //   setLoading(true);
-  //   try {
-  //     // Replace with your actual API endpoint
-  //     await api.post("Authentication/login", {
-  //       account,
-  //       password,
-  //     });
-  //     // Handle success (e.g., save token, redirect)
-  //     // Example: if (response.data.success) { ... }
-  //     navigate("/admin");
-  //   } catch (error) {
-  //     if (error.response && error.response.status === 401) {
-  //       setApiError("Invalid account or password.");
-  //     } else {
-  //       setApiError(
-  //         error.response?.data?.message ||
-  //           "Sign in failed. Please check your credentials."
-  //       );
-  //     }
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    try {
+      const { idToken } = await signUpWithGoogle();
+      console.log("ID Token:", idToken);
+      // Call your backend API for Google sign-in
+      // You may want to use a dedicated API endpoint, e.g. Authentication/google-login
+      // If you use the same endpoint as sign-up, adjust accordingly
+      await api.post("Authentication/google", { idToken });
+      setSnackbar({
+        open: true,
+        message: "Sign in successful",
+        severity: "success",
+      });
+      // Optionally, handle storing token/user info here
+      // Example: login(res.data); if your store supports it
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Google sign-in failed.",
+        severity: "error",
+      });
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
 
   const validateInputs = () => {
     const password = document.getElementById("password");
@@ -216,20 +221,20 @@ export default function SignIn(props) {
             }}
           >
             <FormControl>
-              <FormLabel htmlFor="account" sx={{ textAlign: "left" }}>
-                Account
+              <FormLabel htmlFor="identifier" sx={{ textAlign: "left" }}>
+                Identifier
               </FormLabel>
               <TextField
-                error={accountError}
-                id="account"
-                name="account"
-                placeholder="Username"
-                autoComplete="account"
+                error={identifierError}
+                id="identifier"
+                name="identifier"
+                placeholder="Username/Email"
+                autoComplete="identifier"
                 autoFocus
                 required
                 fullWidth
                 variant="outlined"
-                color={accountError ? "error" : "primary"}
+                color={identifierError ? "error" : "primary"}
               />
             </FormControl>
             <FormControl>
@@ -284,10 +289,11 @@ export default function SignIn(props) {
             <Button
               fullWidth
               variant="outlined"
-              onClick={() => alert("Sign in with Google")}
+              onClick={handleGoogleSignIn}
               startIcon={<GoogleIcon />}
+              disabled={googleLoading}
             >
-              Sign in with Google
+              {googleLoading ? "Signing in..." : "Sign in with Google"}
             </Button>
             <Typography sx={{ textAlign: "center" }}>
               Don&apos;t have an account?{" "}
