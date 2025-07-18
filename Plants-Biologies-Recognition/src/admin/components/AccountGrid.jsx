@@ -21,7 +21,6 @@ import MenuItem from "@mui/material/MenuItem";
 const columnsBase = (handleDelete, handleEdit) => [
   { field: "user_Id", headerName: "ID", width: 100 },
   { field: "account", headerName: "Account", width: 150 },
-  { field: "password", headerName: "Password", width: 120 },
   { field: "role", headerName: "Role", width: 120 },
   { field: "fullName", headerName: "Full Name", width: 180 },
   {
