@@ -9,13 +9,14 @@ import Button from "@mui/material/Button";
 import Snackbar from "@mui/material/Snackbar";
 import MuiAlert from "@mui/material/Alert";
 import api from "../../config/axios.jsx";
+import { MuiOtpInput } from "mui-one-time-password-input";
 
 function ForgotPassword({ open, handleClose }) {
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [verificationCode, setVerificationCode] = useState("");
+  const [otp, setOtp] = useState("");
   const [codeError, setCodeError] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [passwordError, setPasswordError] = useState(false);
@@ -64,7 +65,7 @@ function ForgotPassword({ open, handleClose }) {
     setCodeError(false);
     setPasswordError(false);
 
-    if (!verificationCode || verificationCode.length < 4) {
+    if (!otp || otp.length < 4) {
       setCodeError(true);
       return;
     }
@@ -77,7 +78,7 @@ function ForgotPassword({ open, handleClose }) {
     try {
       await api.post("Authentication/forgot-password/confirm", {
         email,
-        verificationCode,
+        verificationCode: otp,
         newPassword,
       });
       setSnackbar({
@@ -87,7 +88,7 @@ function ForgotPassword({ open, handleClose }) {
       });
       setStep(1);
       setEmail("");
-      setVerificationCode("");
+      setOtp("");
       setNewPassword("");
       handleClose();
     } catch (error) {
@@ -120,19 +121,17 @@ function ForgotPassword({ open, handleClose }) {
             />
           ) : (
             <>
-              <TextField
-                label="Verification Code"
-                type="text"
-                fullWidth
-                required
-                value={verificationCode}
-                onChange={(e) => setVerificationCode(e.target.value)}
-                error={codeError}
-                helperText={
-                  codeError ? "Enter the code sent to your email." : ""
-                }
-                sx={{ mt: 2 }}
+              <MuiOtpInput
+                value={otp}
+                onChange={setOtp}
+                length={6}
+                sx={{ mt: 2, mb: 2 }}
               />
+              {codeError && (
+                <Typography color="error" variant="body2" sx={{ mb: 1 }}>
+                  Enter the code sent to your email.
+                </Typography>
+              )}
               <TextField
                 label="New Password"
                 type="password"

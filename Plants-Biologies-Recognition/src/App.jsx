@@ -9,7 +9,6 @@ import Signup from "./sign-up/SignUp";
 import Admin from "./admin/Admin";
 import Account from "./admin/components/AccountGrid";
 import Dashboard from "./admin/components/MainGrid";
-import Feedback from "./admin/components/AccountGrid";
 import Book from "./admin/components/BookGrid";
 import Chapter from "./admin/components/ChapterGrid";
 import Lesson from "./admin/components/LessonGrid";
@@ -67,7 +66,6 @@ const App = () => {
         { index: true, element: <Dashboard /> }, // This makes /admin go to Dashboard
         { path: "dashboard", element: <Dashboard /> },
         { path: "account", element: <Account /> },
-        { path: "feedback", element: <Feedback /> },
         { path: "book", element: <Book /> },
         { path: "chapter", element: <Chapter /> },
         { path: "lesson", element: <Lesson /> },

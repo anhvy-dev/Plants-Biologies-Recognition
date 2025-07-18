@@ -19,6 +19,12 @@ import CardMedia from "@mui/material/CardMedia";
 import CardContent from "@mui/material/CardContent";
 import CardActions from "@mui/material/CardActions";
 import IconButton from "@mui/material/IconButton";
+import TextField from "@mui/material/TextField";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Checkbox from "@mui/material/Checkbox";
+import TextareaAutosize from "@mui/material/TextareaAutosize";
+import Chip from "@mui/material/Chip";
+import DialogContentText from "@mui/material/DialogContentText";
 import api from "../../config/axios";
 
 export default function BiologiesGrid() {
@@ -36,11 +42,21 @@ export default function BiologiesGrid() {
   });
   const [detailOpen, setDetailOpen] = React.useState(false);
   const [detailBio, setDetailBio] = React.useState(null);
+  const [editOpen, setEditOpen] = React.useState(false);
+  const [editBio, setEditBio] = React.useState(null);
+  const [statusDialogOpen, setStatusDialogOpen] = React.useState(false);
+  const [statusBio, setStatusBio] = React.useState(null);
+  const [statusValue, setStatusValue] = React.useState("");
+  const [statusReason, setStatusReason] = React.useState("");
+
+  // Add state for image popup
+  const [imgOpen, setImgOpen] = React.useState(false);
+  const [imgSrc, setImgSrc] = React.useState("");
 
   // Fetch books
   React.useEffect(() => {
     api
-      .get("/Book/approved")
+      .get("/Book/search")
       .then((res) => setBooks(res.data))
       .catch(() => setBooks([]));
   }, []);
@@ -92,14 +108,100 @@ export default function BiologiesGrid() {
   };
   const handleDetailClose = () => setDetailOpen(false);
 
-  // Edit handler (implement as needed)
+  // Open edit dialog
   const handleEdit = (bio) => {
-    // Open your edit dialog or navigate to edit page
-    setSnackbar({
-      open: true,
-      message: `Edit biology: ${bio.commonName}`,
-      severity: "info",
-    });
+    setEditBio(bio);
+    setEditOpen(true);
+  };
+
+  // Handler for image click
+  const handleImgClick = (src) => {
+    setImgSrc(src);
+    setImgOpen(true);
+  };
+
+  // Handle edit form submit
+  const handleEditSubmit = async (event) => {
+    event.preventDefault();
+    const form = event.target;
+    const updatedBio = {
+      commonName: form.commonName.value,
+      scientificName: form.scientificName.value,
+      specieType: form.specieType.value,
+      description: form.description.value,
+      habitat: form.habitat.value,
+      imageUrl: form.imageUrl.value,
+      isExtinct: form.isExtinct.checked,
+      discoveredAt: form.discoveredAt.value,
+      averageLifeSpan: form.averageLifeSpan.value,
+      isActive: true,
+      status: form.status.value,
+      rejectionReason: form.rejectionReason.value,
+      lesson_Id: editBio.lesson_Id,
+    };
+    try {
+      await api.put(`/Biologies/${editBio.id}`, updatedBio);
+      setSnackbar({
+        open: true,
+        message: "Biology updated successfully!",
+        severity: "success",
+      });
+      setEditOpen(false);
+      // Refresh biologies
+      api
+        .get(`/Biologies/lesson/${selectedLesson}`)
+        .then((res) => setBiologies(res.data))
+        .catch(() => setBiologies([]));
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: error.response?.data?.message || "Update failed.",
+        severity: "error",
+      });
+    }
+  };
+
+  // Open status dialog
+  const handleStatusClick = (bio) => {
+    setStatusBio(bio);
+    setStatusValue(bio.status);
+    setStatusReason(bio.rejectionReason || "");
+    setStatusDialogOpen(true);
+  };
+
+  // Save status change
+  const handleStatusSave = async () => {
+    if (statusValue === "Rejected" && !statusReason) {
+      setSnackbar({
+        open: true,
+        message: "Rejection reason is required when status is Rejected.",
+        severity: "error",
+      });
+      return;
+    }
+    try {
+      await api.put(`/Biologies/${statusBio.id}/status`, {
+        status: statusValue,
+        rejectionReason: statusValue === "Rejected" ? statusReason : "",
+      });
+      setSnackbar({
+        open: true,
+        message: "Status updated successfully.",
+        severity: "success",
+      });
+      setStatusDialogOpen(false);
+      // Refresh biologies
+      api
+        .get(`/Biologies/lesson/${selectedLesson}`)
+        .then((res) => setBiologies(res.data))
+        .catch(() => setBiologies([]));
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: error.response?.data?.message || "Failed to update status.",
+        severity: "error",
+      });
+    }
   };
 
   return (
@@ -178,6 +280,8 @@ export default function BiologiesGrid() {
               height="180"
               image={bio.imageUrl}
               alt={bio.commonName}
+              sx={{ cursor: "pointer" }}
+              onClick={() => handleImgClick(bio.imageUrl)}
             />
             <CardContent>
               <Typography gutterBottom variant="h5" component="div">
@@ -194,6 +298,20 @@ export default function BiologiesGrid() {
               </Typography>
             </CardContent>
             <CardActions>
+              <Chip
+                label={bio.status}
+                color={
+                  bio.status === "Approved"
+                    ? "success"
+                    : bio.status === "Rejected"
+                    ? "error"
+                    : "default"
+                }
+                size="small"
+                variant="outlined"
+                onClick={() => handleStatusClick(bio)}
+                sx={{ cursor: "pointer", mr: 1 }}
+              />
               <Button
                 size="small"
                 startIcon={<EditIcon />}
@@ -243,6 +361,163 @@ export default function BiologiesGrid() {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleDetailClose}>Close</Button>
+        </DialogActions>
+      </Dialog>
+      {/* Edit Dialog */}
+      <Dialog
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Edit Biology</DialogTitle>
+        <form onSubmit={handleEditSubmit}>
+          <DialogContent dividers>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <TextField
+                name="commonName"
+                label="Common Name"
+                defaultValue={editBio?.commonName}
+                required
+              />
+              <TextField
+                name="scientificName"
+                label="Scientific Name"
+                defaultValue={editBio?.scientificName}
+                required
+              />
+              <TextField
+                name="specieType"
+                label="Specie Type"
+                defaultValue={editBio?.specieType}
+                required
+              />
+              <TextareaAutosize
+                name="description"
+                label="Description"
+                minRows={2}
+                maxRows={20}
+                style={{
+                  width: "100%",
+                  fontSize: "1rem",
+                  padding: "8.5px 14px",
+                  borderRadius: 4,
+                  borderColor: "#c4c4c4",
+                  resize: "vertical",
+                  boxSizing: "border-box",
+                }}
+                defaultValue={editBio?.description || ""}
+                placeholder="Description"
+                required
+              />
+              <TextField
+                name="habitat"
+                label="Habitat"
+                defaultValue={editBio?.habitat}
+                required
+              />
+              <TextField
+                name="imageUrl"
+                label="Image URL"
+                defaultValue={editBio?.imageUrl}
+                required
+              />
+              <TextField
+                name="discoveredAt"
+                label="Discovered At"
+                defaultValue={editBio?.discoveredAt}
+                required
+              />
+              <TextField
+                name="averageLifeSpan"
+                label="Average Life Span"
+                defaultValue={editBio?.averageLifeSpan}
+                required
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    name="isExtinct"
+                    defaultChecked={editBio?.isExtinct}
+                  />
+                }
+                label="Extinct"
+              />
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setEditOpen(false)}>Cancel</Button>
+            <Button type="submit" variant="contained">
+              Save
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
+      {/* Status Dialog */}
+      <Dialog
+        open={statusDialogOpen}
+        onClose={() => setStatusDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Change Status</DialogTitle>
+        <DialogContent
+          sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}
+        >
+          <TextField
+            select
+            label="Status"
+            value={statusValue}
+            onChange={(e) => setStatusValue(e.target.value)}
+            fullWidth
+            variant="outlined"
+            sx={{ mt: 2 }}
+          >
+            <MenuItem value="Pending">Pending</MenuItem>
+            <MenuItem value="Approved">Approved</MenuItem>
+            <MenuItem value="Rejected">Rejected</MenuItem>
+          </TextField>
+          {statusValue === "Rejected" && (
+            <TextField
+              label="Rejection Reason"
+              value={statusReason}
+              onChange={(e) => setStatusReason(e.target.value)}
+              fullWidth
+              required
+              variant="outlined"
+              sx={{ mt: 2 }}
+              error={!statusReason}
+              helperText={!statusReason ? "Rejection reason is required." : ""}
+            />
+          )}
+          <DialogContentText sx={{ mt: 1 }}>
+            Changing status will update the biology's approval state.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setStatusDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleStatusSave} variant="contained">
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {/* Image Preview Dialog */}
+      <Dialog
+        open={imgOpen}
+        onClose={() => setImgOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Image Preview</DialogTitle>
+        <DialogContent sx={{ display: "flex", justifyContent: "center" }}>
+          <img
+            src={imgSrc}
+            alt="Biology"
+            style={{ maxWidth: "100%", maxHeight: "70vh", borderRadius: 8 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setImgOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
       <Snackbar

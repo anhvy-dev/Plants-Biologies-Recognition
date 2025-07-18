@@ -21,7 +21,6 @@ const pageNames = {
   "/dashboard": "Home",
   "/account": "Account",
   "/book": "Book",
-  "/feedback": "Feedback",
   "/chapter": "Chapter",
   "/lesson": "Lesson",
   "/biology": "Biology",

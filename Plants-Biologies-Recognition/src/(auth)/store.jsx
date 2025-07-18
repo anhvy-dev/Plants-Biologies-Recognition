@@ -45,7 +45,7 @@ export const useAuthStore = create()(
                   account: res.data.account,
                 },
               });
-
+              localStorage.setItem("token", res.data.token);
               resolve(res.data);
             })
             .catch((error) => {

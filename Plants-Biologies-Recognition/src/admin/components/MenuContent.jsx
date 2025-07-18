@@ -25,7 +25,6 @@ const mainListItems = [
   { text: "Book", icon: <MenuBookRoundedIcon />, path: "/book" },
   { text: "Chapter", icon: <BookmarksRoundedIcon />, path: "/chapter" },
   { text: "Lesson", icon: <BookmarkRoundedIcon />, path: "/lesson" },
-  { text: "Feedback", icon: <AssignmentRoundedIcon />, path: "/feedback" },
   { text: "Biology", icon: <SpaRoundedIcon />, path: "/biology" },
 ];
 
