@@ -15,7 +15,7 @@ export default function GoogleSignUp({
     try {
       // Use the helper from firebase config
       const { idToken } = await signUpWithGoogle();
-      const res = await api.post("Authentication/google", { idToken });
+      const res = await api.post("Authentication/google-signin", { idToken });
       if (onSuccess) onSuccess(res.data);
     } catch (error) {
       if (onError) onError(error);

@@ -111,7 +111,7 @@ export default function ChapterGrid() {
   // Fetch books for menu
   React.useEffect(() => {
     api
-      .get("/Book/approved")
+      .get("/Book/search")
       .then((res) => setBooks(res.data))
       .catch(() => setBooks([]));
   }, []);

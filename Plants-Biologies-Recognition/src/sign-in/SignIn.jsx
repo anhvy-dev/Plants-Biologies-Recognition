@@ -135,7 +135,7 @@ export default function SignIn(props) {
       // Call your backend API for Google sign-in
       // You may want to use a dedicated API endpoint, e.g. Authentication/google-login
       // If you use the same endpoint as sign-up, adjust accordingly
-      await api.post("Authentication/google", { idToken });
+      await api.post("Authentication/google-signin", { idToken });
       setSnackbar({
         open: true,
         message: "Sign in successful",
