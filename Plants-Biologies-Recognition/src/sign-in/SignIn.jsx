@@ -24,7 +24,10 @@ import { useAuthStore } from "../(auth)/store";
 import { useMutation } from "@tanstack/react-query";
 import Snackbar from "@mui/material/Snackbar";
 import MuiAlert from "@mui/material/Alert";
-import { signUpWithGoogle } from "../config/firebase.jsx";
+import {
+  loadGoogleScript,
+  renderGoogleButton,
+} from "../config/googleConsole.jsx";
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: "flex",
@@ -80,8 +83,53 @@ export default function SignIn(props) {
     message: "",
     severity: "success",
   });
-  const [googleLoading, setGoogleLoading] = React.useState(false);
+  // Removed unused googleLoading state
   const { login } = useAuthStore();
+  const googleButtonRef = React.useRef(null);
+
+  React.useEffect(() => {
+    loadGoogleScript().then(() => {
+      if (googleButtonRef.current) {
+        renderGoogleButton({
+          elementId: "google-signin-btn",
+          onSuccess: async (idToken) => {
+            try {
+              const res = await api.post("Authentication/google-signin", {
+                idToken,
+              });
+              localStorage.setItem("token", idToken);
+
+              // Only update auth store, do NOT call login API again
+              login(res.data); // This should set isAuthenticated and authUser in your store
+
+              setSnackbar({
+                open: true,
+                message: "Sign in successful",
+                severity: "success",
+              });
+              // Optionally, navigate to dashboard or another page here
+            } catch (error) {
+              setSnackbar({
+                open: true,
+                message:
+                  error.response?.data?.message ||
+                  error.message ||
+                  "Google sign-in failed.",
+                severity: "error",
+              });
+            }
+          },
+          onError: (err) => {
+            setSnackbar({
+              open: true,
+              message: err || "Google sign-in failed.",
+              severity: "error",
+            });
+          },
+        });
+      }
+    });
+  }, []);
 
   const handleSnackbarClose = () => {
     setSnackbar({ ...snackbar, open: false });
@@ -125,36 +173,6 @@ export default function SignIn(props) {
       password: data.get("password"),
     };
     loginMutation.mutate(values); // Pass values to the mutate function
-  };
-
-  const handleGoogleSignIn = async () => {
-    setGoogleLoading(true);
-    try {
-      const { idToken } = await signUpWithGoogle();
-      console.log("ID Token:", idToken);
-      // Call your backend API for Google sign-in
-      // You may want to use a dedicated API endpoint, e.g. Authentication/google-login
-      // If you use the same endpoint as sign-up, adjust accordingly
-      await api.post("Authentication/google-signin", { idToken });
-      setSnackbar({
-        open: true,
-        message: "Sign in successful",
-        severity: "success",
-      });
-      // Optionally, handle storing token/user info here
-      // Example: login(res.data); if your store supports it
-    } catch (error) {
-      setSnackbar({
-        open: true,
-        message:
-          error.response?.data?.message ||
-          error.message ||
-          "Google sign-in failed.",
-        severity: "error",
-      });
-    } finally {
-      setGoogleLoading(false);
-    }
   };
 
   const validateInputs = () => {
@@ -286,15 +304,7 @@ export default function SignIn(props) {
           </Box>
           <Divider>or</Divider>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <Button
-              fullWidth
-              variant="outlined"
-              onClick={handleGoogleSignIn}
-              startIcon={<GoogleIcon />}
-              disabled={googleLoading}
-            >
-              {googleLoading ? "Signing in..." : "Sign in with Google"}
-            </Button>
+            <div id="google-signin-btn" ref={googleButtonRef} />
             <Typography sx={{ textAlign: "center" }}>
               Don&apos;t have an account?{" "}
               <Link

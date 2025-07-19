@@ -15,6 +15,24 @@ export const useAuthStore = create()(
       // refreshToken: null,
       login: (input) =>
         new Promise((resolve, reject) => {
+          // If input contains a token, it's from Google sign-in
+          if (input.token && input.user) {
+            set({
+              isAuthenticated: true,
+              isKeepLogin: true,
+              accessToken: input.token,
+              authUser: {
+                id: input.user.id,
+                name: input.user.name,
+                role: input.user.role,
+                email: input.user.email,
+              },
+            });
+            localStorage.setItem("token", input.token);
+            resolve(input);
+            return;
+          }
+          // Otherwise, do normal login
           authApi
             .login(input)
             .then((res) => {
@@ -71,6 +89,7 @@ export const useAuthStore = create()(
           // refreshToken: null,
           // accesses: null,
         });
+        localStorage.removeItem("token"); // <-- Reset token after logout
         // localStorage.removeItem("customerView");
       },
       accesses: null,

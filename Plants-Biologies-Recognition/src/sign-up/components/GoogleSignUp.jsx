@@ -1,38 +1,43 @@
 import React from "react";
-import Button from "@mui/material/Button";
-import { GoogleIcon } from "./CustomIcons.jsx";
+import {
+  loadGoogleScript,
+  renderGoogleButton,
+} from "../../config/googleConsole.jsx";
 import api from "../../config/axios.jsx";
-import { signUpWithGoogle } from "../../config/firebase.jsx";
+import { GoogleIcon } from "./CustomIcons.jsx";
 
-export default function GoogleSignUp({
-  onSuccess,
-  onError,
-  loading,
-  setLoading,
-}) {
-  const handleGoogleSignUp = async () => {
-    setLoading(true);
-    try {
-      // Use the helper from firebase config
-      const { idToken } = await signUpWithGoogle();
-      const res = await api.post("Authentication/google-signin", { idToken });
-      if (onSuccess) onSuccess(res.data);
-    } catch (error) {
-      if (onError) onError(error);
-    } finally {
-      setLoading(false);
-    }
-  };
+export default function GoogleSignUp({ onSuccess, onError, setLoading }) {
+  const googleButtonRef = React.useRef(null);
+
+  React.useEffect(() => {
+    loadGoogleScript().then(() => {
+      if (googleButtonRef.current) {
+        renderGoogleButton({
+          elementId: "google-signup-btn",
+          onSuccess: async (idToken) => {
+            setLoading(true);
+            try {
+              const res = await api.post("Authentication/google-signin", {
+                idToken,
+              });
+              if (onSuccess) onSuccess(res.data);
+            } catch (error) {
+              if (onError) onError(error);
+            } finally {
+              setLoading(false);
+            }
+          },
+          onError: (err) => {
+            if (onError) onError(err || "Google sign-up failed.");
+          },
+        });
+      }
+    });
+  }, []);
 
   return (
-    <Button
-      fullWidth
-      variant="outlined"
-      onClick={handleGoogleSignUp}
-      startIcon={<GoogleIcon />}
-      disabled={loading}
-    >
-      {loading ? "Signing up..." : "Sign up with Google"}
-    </Button>
+    <div style={{ width: "100%" }}>
+      <div id="google-signup-btn" ref={googleButtonRef} />
+    </div>
   );
 }

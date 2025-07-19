@@ -1,10 +1,8 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getStorage } from "firebase/storage";
-import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 
 // Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -18,15 +16,5 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const storage = getStorage(app);
-const auth = getAuth(app);
 
-// Google sign-in helper
-const googleProvider = new GoogleAuthProvider();
-const signUpWithGoogle = async () => {
-  const result = await signInWithPopup(auth, googleProvider);
-  // Returns Firebase user and idToken
-  const idToken = await result.user.getIdToken();
-  return { user: result.user, idToken };
-};
-
-export { storage, auth, signUpWithGoogle };
+export { storage };
