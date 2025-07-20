@@ -323,7 +323,7 @@ export default function ChapterGrid() {
           </Select>
         </FormControl>
         <Button
-          variant="contained"
+          variant="outlined"
           startIcon={<AddIcon />}
           onClick={handleCreateOpen}
           disabled={!selectedBook}

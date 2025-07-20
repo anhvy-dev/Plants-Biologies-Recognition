@@ -46,7 +46,7 @@ export default function BiologiesGrid() {
   const [editOpen, setEditOpen] = React.useState(false);
   const [editBio, setEditBio] = React.useState(null);
   const [statusDialogOpen, setStatusDialogOpen] = React.useState(false);
-  const [statusBio, setStatusBio] = React.useState(null);
+  const [statusBio] = React.useState(null);
   const [statusValue, setStatusValue] = React.useState("");
   const [statusReason, setStatusReason] = React.useState("");
 
@@ -174,14 +174,6 @@ export default function BiologiesGrid() {
         severity: "error",
       });
     }
-  };
-
-  // Open status dialog
-  const handleStatusClick = (bio) => {
-    setStatusBio(bio);
-    setStatusValue(bio.status);
-    setStatusReason(bio.rejectionReason || "");
-    setStatusDialogOpen(true);
   };
 
   // Save status change
@@ -433,8 +425,8 @@ export default function BiologiesGrid() {
                 }
                 size="small"
                 variant="outlined"
-                onClick={() => handleStatusClick(bio)}
-                sx={{ cursor: "pointer", mr: 1 }}
+                // REMOVE onClick so teachers cannot change status
+                sx={{ mr: 1 }}
               />
               <Button
                 size="small"

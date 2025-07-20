@@ -402,7 +402,7 @@ export default function LessonGrid() {
           </Select>
         </FormControl>
         <Button
-          variant="contained"
+          variant="outlined"
           startIcon={<AddIcon />}
           onClick={handleCreateOpen}
           disabled={!selectedChapter}

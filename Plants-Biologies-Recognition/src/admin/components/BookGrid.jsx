@@ -403,7 +403,7 @@ export default function BookGrid() {
       </Typography>
       <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
         <Button
-          variant="contained"
+          variant="outlined"
           startIcon={<AddIcon />}
           onClick={handleCreateOpen}
         >

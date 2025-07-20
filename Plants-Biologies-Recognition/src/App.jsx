@@ -21,6 +21,7 @@ import Report from "./teacher/components/MainGrid";
 import TeacherBook from "./teacher/components/TeacherBookGrid";
 import TeacherChapter from "./teacher/components/TeacherChapterGrid";
 import TeacherLesson from "./teacher/components/TeacherLessonGrid";
+import TeacherBiology from "./teacher/components/TeacherBiologyGrid";
 
 import { createRoutes } from "./routes/utils";
 import { useAuthStore } from "./(auth)/store";
@@ -57,6 +58,7 @@ const App = () => {
         { path: "book", element: <TeacherBook /> },
         { path: "chapter", element: <TeacherChapter /> },
         { path: "lesson", element: <TeacherLesson /> },
+        { path: "biology", element: <TeacherBiology /> },
       ],
     },
     {

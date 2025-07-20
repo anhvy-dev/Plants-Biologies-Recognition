@@ -18,7 +18,7 @@ import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 
-const columnsBase = (handleDelete, handleEdit) => [
+const columnsBase = (handleDelete, handleEdit, handleStatusClick) => [
   { field: "user_Id", headerName: "ID", width: 100 },
   { field: "account", headerName: "Account", width: 150 },
   { field: "role", headerName: "Role", width: 120 },
@@ -33,6 +33,8 @@ const columnsBase = (handleDelete, handleEdit) => [
         color={params.row.isActive ? "success" : "default"}
         size="small"
         variant="outlined"
+        onClick={() => handleStatusClick(params.row)}
+        sx={{ cursor: "pointer" }}
       />
     ),
   },
@@ -98,6 +100,11 @@ export default function AccountGrid() {
     fullName: "",
     isActive: true,
   });
+
+  // Add state for status dialog
+  const [statusDialogOpen, setStatusDialogOpen] = React.useState(false);
+  const [statusUser, setStatusUser] = React.useState(null);
+  const [statusValue, setStatusValue] = React.useState(true);
 
   const fetchAccounts = React.useCallback(() => {
     setLoading(true);
@@ -205,7 +212,15 @@ export default function AccountGrid() {
 
   const handleCreateSubmit = async () => {
     try {
-      await api.post("/User/admin-create", createValues);
+      // Add email field to match API requirements
+      await api.post("/User/admin-create", {
+        account: createValues.account,
+        email: createValues.email || "", // Add email field
+        password: createValues.password,
+        role: createValues.role,
+        fullName: createValues.fullName,
+        isActive: createValues.isActive,
+      });
       setSnackbar({
         open: true,
         message: "Account created successfully.",
@@ -214,6 +229,7 @@ export default function AccountGrid() {
       setCreateOpen(false);
       setCreateValues({
         account: "",
+        email: "", // Reset email field
         password: "",
         role: "Teacher",
         fullName: "",
@@ -224,6 +240,35 @@ export default function AccountGrid() {
       setSnackbar({
         open: true,
         message: error?.response?.data?.message || "Failed to create account.",
+        severity: "error",
+      });
+    }
+  };
+
+  // Handler to open status dialog
+  const handleStatusClick = (user) => {
+    setStatusUser(user);
+    setStatusValue(user.isActive);
+    setStatusDialogOpen(true);
+  };
+
+  // Handler to save status change
+  const handleStatusSave = async () => {
+    try {
+      await api.put(`/User/${statusUser.user_Id}/status`, {
+        isActive: statusValue,
+      });
+      setSnackbar({
+        open: true,
+        message: "Status updated successfully.",
+        severity: "success",
+      });
+      setStatusDialogOpen(false);
+      fetchAccounts();
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: error?.response?.data?.message || "Failed to update status.",
         severity: "error",
       });
     }
@@ -240,7 +285,7 @@ export default function AccountGrid() {
       </Typography>
       <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
         <Button
-          variant="contained"
+          variant="outlined"
           startIcon={<AddIcon />}
           onClick={handleCreateOpen}
         >
@@ -250,7 +295,7 @@ export default function AccountGrid() {
       <Box sx={{ width: "100%" }}>
         <DataGrid
           rows={accounts}
-          columns={columnsBase(handleDelete, handleEdit)}
+          columns={columnsBase(handleDelete, handleEdit, handleStatusClick)}
           loading={loading}
           pageSize={5}
           rowsPerPageOptions={[5, 10, 20]}
@@ -318,40 +363,29 @@ export default function AccountGrid() {
             <MenuItem value="Student">Student</MenuItem>
           </TextField>
           <TextField
+            select
             label="Status"
             name="isActive"
             value={createValues.isActive ? "Active" : "Inactive"}
-            onChange={() =>
+            onChange={(e) =>
               setCreateValues((prev) => ({
                 ...prev,
-                isActive: !prev.isActive,
+                isActive: e.target.value === "Active",
               }))
             }
             fullWidth
-            InputProps={{
-              readOnly: true,
-              endAdornment: (
-                <Button
-                  onClick={() =>
-                    setCreateValues((prev) => ({
-                      ...prev,
-                      isActive: !prev.isActive,
-                    }))
-                  }
-                  size="small"
-                  variant="outlined"
-                  color={createValues.isActive ? "success" : "inherit"}
-                  sx={{
-                    ml: 1,
-                    borderColor: createValues.isActive
-                      ? "success.main"
-                      : "grey.400",
-                  }}
-                >
-                  Toggle
-                </Button>
-              ),
-            }}
+            variant="outlined"
+            sx={{ mt: 2 }}
+          >
+            <MenuItem value="Active">Active</MenuItem>
+            <MenuItem value="Inactive">Inactive</MenuItem>
+          </TextField>
+          <TextField
+            label="Email"
+            name="email"
+            value={createValues.email}
+            onChange={handleCreateChange}
+            fullWidth
             variant="outlined"
             sx={{ mt: 2 }}
           />
@@ -405,47 +439,66 @@ export default function AccountGrid() {
             sx={{ mt: 3 }}
           />
           <TextField
+            select
             label="Status"
             name="isActive"
             value={editValues.isActive ? "Active" : "Inactive"}
-            onChange={() =>
+            onChange={(e) =>
               setEditValues((prev) => ({
                 ...prev,
-                isActive: !prev.isActive,
+                isActive: e.target.value === "Active",
               }))
             }
             fullWidth
-            InputProps={{
-              readOnly: true,
-              endAdornment: (
-                <Button
-                  onClick={() =>
-                    setEditValues((prev) => ({
-                      ...prev,
-                      isActive: !prev.isActive,
-                    }))
-                  }
-                  size="small"
-                  variant="outlined"
-                  color={editValues.isActive ? "success" : "inherit"}
-                  sx={{
-                    ml: 1,
-                    borderColor: editValues.isActive
-                      ? "success.main"
-                      : "grey.400",
-                  }}
-                >
-                  Toggle
-                </Button>
-              ),
-            }}
             variant="outlined"
             sx={{ mt: 3 }}
-          />
+          >
+            <MenuItem value="Active">Active</MenuItem>
+            <MenuItem value="Inactive">Inactive</MenuItem>
+          </TextField>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleEditClose}>Cancel</Button>
           <Button onClick={handleEditSubmit} variant="contained">
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {/* Status Dialog */}
+      <Dialog
+        open={statusDialogOpen}
+        onClose={() => setStatusDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Change Status</DialogTitle>
+        <DialogContent
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+            mt: 1,
+          }}
+        >
+          <TextField
+            select
+            label="Status"
+            value={statusValue ? "Active" : "Inactive"}
+            onChange={(e) => setStatusValue(e.target.value === "Active")}
+            fullWidth
+            variant="outlined"
+            sx={{ mt: 2 }}
+          >
+            <MenuItem value="Active">Active</MenuItem>
+            <MenuItem value="Inactive">Inactive</MenuItem>
+          </TextField>
+          <DialogContent>
+            Changing status will update the account's active state.
+          </DialogContent>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setStatusDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleStatusSave} variant="contained">
             Save
           </Button>
         </DialogActions>
