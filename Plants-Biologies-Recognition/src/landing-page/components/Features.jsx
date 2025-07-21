@@ -18,8 +18,12 @@ const items = [
     title: "Dashboard",
     description:
       "This item could provide a snapshot of the most important metrics or data points related to the product.",
-    imageLight: `url("https://res.cloudinary.com/dllmbutza/image/upload/v1753115020/weblight_wkvxyt.png")`,
-    imageDark: `url("https://res.cloudinary.com/dllmbutza/image/upload/v1753115020/webdark_g7djuj.png")`,
+    imageLight: `url("${
+      import.meta.env.VITE_TEMPLATE_IMAGE_URL || "https://mui.com"
+    }/static/images/templates/templates-images/dash-light.png")`,
+    imageDark: `url("${
+      import.meta.env.VITE_TEMPLATE_IMAGE_URL || "https://mui.com"
+    }/static/images/templates/templates-images/dash-dark.png")`,
   },
   {
     icon: <EdgesensorHighRoundedIcon />,
