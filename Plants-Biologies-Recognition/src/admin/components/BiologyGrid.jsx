@@ -150,8 +150,8 @@ export default function BiologiesGrid() {
       discoveredAt: form.discoveredAt.value,
       averageLifeSpan: form.averageLifeSpan.value,
       isActive: true,
-      status: form.status.value,
-      rejectionReason: form.rejectionReason.value,
+      status: editBio.status, // Use existing status
+      rejectionReason: editBio.rejectionReason || "", // Use existing rejection reason
       lesson_Id: editBio.lesson_Id,
     };
     try {

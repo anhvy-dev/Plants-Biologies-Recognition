@@ -5,7 +5,6 @@ import AppTheme from "../shared-theme/AppTheme.jsx";
 import AppAppBar from "./components/AppAppBar.jsx";
 import Hero from "./components/Hero.jsx";
 import Highlights from "./components/Highlights.jsx";
-import Pricing from "./components/Pricing.jsx";
 import Features from "./components/Features.jsx";
 import Testimonials from "./components/Testimonials.jsx";
 import FAQ from "./components/FAQ.jsx";
@@ -24,7 +23,6 @@ export default function MarketingPage(props) {
         <Divider />
         <Highlights />
         <Divider />
-        <Pricing />
         <Divider />
         <FAQ />
         <Divider />

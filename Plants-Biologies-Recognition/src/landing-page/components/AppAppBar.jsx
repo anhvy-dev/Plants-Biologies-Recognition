@@ -78,9 +78,6 @@ export default function AppAppBar() {
               <Button variant="text" color="info" size="small">
                 Highlights
               </Button>
-              <Button variant="text" color="info" size="small">
-                Pricing
-              </Button>
               <Button
                 variant="text"
                 color="info"
