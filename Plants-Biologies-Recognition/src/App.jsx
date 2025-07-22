@@ -34,6 +34,10 @@ const App = () => {
       element: <LandingPage />,
     },
     {
+      path: "*",
+      element: <>Page not found</>,
+    },
+    {
       path: "sign-in",
       element: <Signin />,
     },
@@ -42,16 +46,14 @@ const App = () => {
       element: <Signup />,
     },
     {
-      path: "student",
       element: <Student />,
       accessKey: "Student",
+      children: [{ path: "student", element: <Student /> }],
     },
     {
-      path: "teacher",
       element: <Teacher />,
       accessKey: "Teacher",
       children: [
-        { index: true, element: <Report /> }, // /teacher goes to Report
         { path: "report", element: <Report /> },
         { path: "book", element: <TeacherBook /> },
         { path: "chapter", element: <TeacherChapter /> },
@@ -60,11 +62,10 @@ const App = () => {
       ],
     },
     {
-      path: "admin",
       element: <Admin />,
       accessKey: "Admin",
       children: [
-        { index: true, element: <Dashboard /> }, // /admin goes to Dashboard
+        { index: true, element: <Dashboard /> }, // This makes /admin go to Dashboard
         { path: "dashboard", element: <Dashboard /> },
         { path: "account", element: <Account /> },
         { path: "book", element: <Book /> },
@@ -72,10 +73,6 @@ const App = () => {
         { path: "lesson", element: <Lesson /> },
         { path: "biology", element: <Biology /> },
       ],
-    },
-    {
-      path: "*",
-      element: <>Page not found</>,
     },
   ];
 
