@@ -118,22 +118,14 @@ export default function ChapterGrid() {
   // Enhanced book selection handler
   const handleBookChange = (e) => {
     const bookId = e.target.value;
-    console.log("Selected book ID:", bookId); // Debug log
-
-    // Find the selected book object for additional info
-    const selectedBookObj = books.find((book) => book.book_Id === bookId);
-    console.log("Selected book object:", selectedBookObj); // Debug log
-
     setSelectedBook(bookId);
   };
 
   // Fetch books for menu with better error handling
   React.useEffect(() => {
-    console.log("Fetching books..."); // Debug log
     api
       .get("/Book/search")
       .then((res) => {
-        console.log("Books fetched:", res.data); // Debug log
         setBooks(res.data || []);
       })
       .catch((error) => {
@@ -150,18 +142,15 @@ export default function ChapterGrid() {
   // Fetch chapters for selected book
   const fetchChapters = React.useCallback(() => {
     if (!selectedBook) {
-      console.log("No book selected, clearing chapters");
       setChapters([]);
       return;
     }
 
-    console.log("Fetching chapters for book ID:", selectedBook);
     setLoading(true);
 
     api
       .get(`/Chapter/book/${selectedBook}`) // changed from /Chapter/search?bookId=...
       .then((res) => {
-        console.log("Chapters fetched for book", selectedBook, ":", res.data);
         setChapters(Array.isArray(res.data) ? res.data : []);
       })
       .catch((error) => {
@@ -207,10 +196,6 @@ export default function ChapterGrid() {
   };
 
   const handleEdit = (chapter) => {
-    console.log("Editing chapter:", chapter);
-    console.log("Current selectedBook:", selectedBook);
-    console.log("Chapter's book_Id:", chapter.book_Id);
-
     // Validate that we have a selected book and chapter
     if (!selectedBook || !chapter.chapter_Id) {
       setSnackbar({
@@ -271,23 +256,7 @@ export default function ChapterGrid() {
         rejectionReason: "", // Empty string, not null
       };
 
-      console.log(
-        "Sending update request to:",
-        `/Chapter/${editChapter.chapter_Id}`
-      );
-      console.log("Update data:", updateData);
-      console.log(
-        "Using selectedBook:",
-        selectedBook,
-        "instead of editChapter.book_Id:",
-        editChapter.book_Id
-      );
-
-      const response = await api.put(
-        `/Chapter/${editChapter.chapter_Id}`,
-        updateData
-      );
-      console.log("Update response:", response.data);
+      await api.put(`/Chapter/${editChapter.chapter_Id}`, updateData);
 
       setSnackbar({
         open: true,
@@ -297,11 +266,6 @@ export default function ChapterGrid() {
       setEditOpen(false);
       fetchChapters();
     } catch (error) {
-      console.error("Full error object:", error);
-      console.error("Error response:", error.response);
-      console.error("Error response data:", error.response?.data);
-      console.error("Error response status:", error.response?.status);
-
       let errorMessage = "Failed to update chapter.";
 
       if (error.response?.data) {
@@ -444,11 +408,7 @@ export default function ChapterGrid() {
         rejectionReason: "",
       };
 
-      console.log("Creating chapter with book ID:", selectedBook);
-      console.log("Create data:", createData);
-
-      const response = await api.post("/Chapter", createData);
-      console.log("Create response:", response.data);
+      await api.post("/Chapter", createData);
 
       setSnackbar({
         open: true,
@@ -459,9 +419,6 @@ export default function ChapterGrid() {
       setCreateTitle("");
       fetchChapters();
     } catch (error) {
-      console.error("Error creating chapter:", error);
-      console.error("Error response data:", error.response?.data);
-
       let errorMessage = "Failed to create chapter.";
 
       if (error.response?.data) {
@@ -517,12 +474,6 @@ export default function ChapterGrid() {
             ))}
           </Select>
         </FormControl>
-        {/* Show selected book info for debugging */}
-        {selectedBook && (
-          <Typography variant="body2" sx={{ mr: 2, color: "text.secondary" }}>
-            Selected Book ID: {selectedBook}
-          </Typography>
-        )}
         <Button
           variant="outlined"
           startIcon={<AddIcon />}
@@ -532,12 +483,6 @@ export default function ChapterGrid() {
           Create
         </Button>
       </Box>
-      {/* Show book selection status */}
-      {!selectedBook && (
-        <Typography variant="body2" sx={{ mb: 2, color: "text.secondary" }}>
-          Please select a book to view its chapters.
-        </Typography>
-      )}
       <Box sx={{ width: "100%" }}>
         <DataGrid
           rows={chapters}

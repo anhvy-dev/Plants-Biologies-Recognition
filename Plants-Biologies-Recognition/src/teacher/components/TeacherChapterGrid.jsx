@@ -108,12 +108,28 @@ export default function ChapterGrid() {
   const [createOpen, setCreateOpen] = React.useState(false);
   const [createTitle, setCreateTitle] = React.useState("");
 
-  // Fetch books for menu
+  // Enhanced book selection handler
+  const handleBookChange = (e) => {
+    const bookId = e.target.value;
+    setSelectedBook(bookId);
+  };
+
+  // Fetch books for menu with better error handling
   React.useEffect(() => {
     api
       .get("/Book/search")
-      .then((res) => setBooks(res.data))
-      .catch(() => setBooks([]));
+      .then((res) => {
+        setBooks(res.data || []);
+      })
+      .catch((error) => {
+        console.error("Error fetching books:", error);
+        setBooks([]);
+        setSnackbar({
+          open: true,
+          message: "Failed to fetch books.",
+          severity: "error",
+        });
+      });
   }, []);
 
   // Fetch chapters for selected book
@@ -122,11 +138,28 @@ export default function ChapterGrid() {
       setChapters([]);
       return;
     }
+
     setLoading(true);
+
     api
       .get(`/Chapter/book/${selectedBook}`) // changed from /Chapter/search?bookId=...
-      .then((res) => setChapters(res.data))
-      .catch(() => setChapters([]))
+      .then((res) => {
+        setChapters(Array.isArray(res.data) ? res.data : []);
+      })
+      .catch((error) => {
+        console.error(
+          "Error fetching chapters for book",
+          selectedBook,
+          ":",
+          error
+        );
+        setChapters([]);
+        setSnackbar({
+          open: true,
+          message: "Failed to fetch chapters.",
+          severity: "error",
+        });
+      })
       .finally(() => setLoading(false));
   }, [selectedBook]);
 
@@ -156,10 +189,20 @@ export default function ChapterGrid() {
   };
 
   const handleEdit = (chapter) => {
+    // Validate that we have a selected book and chapter
+    if (!selectedBook || !chapter.chapter_Id) {
+      setSnackbar({
+        open: true,
+        message: "Invalid chapter or book selection. Please try again.",
+        severity: "error",
+      });
+      return;
+    }
+
     setEditChapter(chapter);
     setEditValues({
-      chapter_Title: chapter.chapter_Title,
-      status: chapter.status,
+      chapter_Title: chapter.chapter_Title || "",
+      status: chapter.status || "",
       rejectionReason: chapter.rejectionReason || "",
     });
     setEditOpen(true);
@@ -176,12 +219,38 @@ export default function ChapterGrid() {
 
   const handleEditSubmit = async () => {
     try {
-      await api.put(`/Chapter/${editChapter.chapter_Id}`, {
-        chapter_Id: editChapter.chapter_Id,
-        chapter_Title: editValues.chapter_Title,
+      // Get the chapter title and validate it
+      const trimmedTitle = editValues.chapter_Title.trim();
+
+      if (!trimmedTitle) {
+        setSnackbar({
+          open: true,
+          message: "Chapter title cannot be empty.",
+          severity: "error",
+        });
+        return;
+      }
+
+      if (trimmedTitle.length < 2) {
+        setSnackbar({
+          open: true,
+          message: "Chapter title must be at least 2 characters long.",
+          severity: "error",
+        });
+        return;
+      }
+
+      // Use selectedBook instead of editChapter.book_Id
+      const updateData = {
+        book_Id: selectedBook, // Use the currently selected book ID
+        chapter_Title: trimmedTitle,
+        isActive: true,
         status: "Pending",
-        rejectionReason: editValues.rejectionReason,
-      });
+        rejectionReason: "", // Empty string, not null
+      };
+
+      await api.put(`/Chapter/${editChapter.chapter_Id}`, updateData);
+
       setSnackbar({
         open: true,
         message: "Chapter updated successfully.",
@@ -190,9 +259,23 @@ export default function ChapterGrid() {
       setEditOpen(false);
       fetchChapters();
     } catch (error) {
+      let errorMessage = "Failed to update chapter.";
+
+      if (error.response?.data) {
+        if (typeof error.response.data === "string") {
+          errorMessage = error.response.data;
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response.data.error) {
+          errorMessage = error.response.data.error;
+        }
+      }
+
       setSnackbar({
         open: true,
-        message: error?.response?.data?.message || "Failed to update chapter.",
+        message: `${errorMessage} (Status: ${
+          error.response?.status || "Unknown"
+        })`,
         severity: "error",
       });
     }
@@ -208,35 +291,73 @@ export default function ChapterGrid() {
     setCreateTitle("");
   };
 
+  // Enhanced create submit with book ID validation
   const handleCreateSubmit = async () => {
-    if (!createTitle.trim() || !selectedBook) {
+    const title = createTitle.trim();
+
+    // Validate book selection
+    if (!selectedBook) {
       setSnackbar({
         open: true,
-        message: "Please select a book and enter a chapter title.",
+        message: "Please select a book first.",
         severity: "error",
       });
       return;
     }
+
+    if (!title) {
+      setSnackbar({
+        open: true,
+        message: "Please enter a chapter title.",
+        severity: "error",
+      });
+      return;
+    }
+
+    if (title.length < 2) {
+      setSnackbar({
+        open: true,
+        message: "Chapter title must be at least 2 characters long.",
+        severity: "error",
+      });
+      return;
+    }
+
     try {
-      await api.post("/Chapter", {
-        book_Id: selectedBook,
-        chapter_Title: createTitle,
-        isActive: false, // Always false when status is Pending
+      const createData = {
+        book_Id: selectedBook, // This is the book ID from the dropdown
+        chapter_Title: title,
+        isActive: false, // Always false when status is Pending for teachers
         status: "Pending",
         rejectionReason: "",
-        lessons: [],
-      });
+      };
+
+      await api.post("/Chapter", createData);
+
       setSnackbar({
         open: true,
         message: "Chapter created successfully.",
         severity: "success",
       });
       setCreateOpen(false);
+      setCreateTitle("");
       fetchChapters();
     } catch (error) {
+      let errorMessage = "Failed to create chapter.";
+
+      if (error.response?.data) {
+        if (typeof error.response.data === "string") {
+          errorMessage = error.response.data;
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        }
+      }
+
       setSnackbar({
         open: true,
-        message: error?.response?.data?.message || "Failed to create chapter.",
+        message: `${errorMessage} (Status: ${
+          error.response?.status || "Unknown"
+        })`,
         severity: "error",
       });
     }
@@ -268,7 +389,7 @@ export default function ChapterGrid() {
             labelId="book-select-label"
             value={selectedBook}
             label="Choose Book"
-            onChange={(e) => setSelectedBook(e.target.value)}
+            onChange={handleBookChange} // Use the enhanced handler
           >
             {books.map((book) => (
               <MenuItem key={book.book_Id} value={book.book_Id}>

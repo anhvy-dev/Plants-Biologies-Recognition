@@ -141,15 +141,25 @@ export default function LessonGrid() {
   const [createOpen, setCreateOpen] = React.useState(false);
   const [createTitle, setCreateTitle] = React.useState("");
 
-  // Fetch books for menu
+  // Fetch books for menu with better error handling
   React.useEffect(() => {
     api
       .get("/Book/search")
-      .then((res) => setBooks(res.data))
-      .catch(() => setBooks([]));
+      .then((res) => {
+        setBooks(res.data || []);
+      })
+      .catch((error) => {
+        console.error("Error fetching books:", error);
+        setBooks([]);
+        setSnackbar({
+          open: true,
+          message: "Failed to fetch books.",
+          severity: "error",
+        });
+      });
   }, []);
 
-  // Fetch chapters for selected book
+  // Fetch chapters for selected book with better error handling
   React.useEffect(() => {
     if (!selectedBook) {
       setChapters([]);
@@ -158,11 +168,21 @@ export default function LessonGrid() {
     }
     api
       .get(`/Chapter/book/${selectedBook}`)
-      .then((res) => setChapters(res.data))
-      .catch(() => setChapters([]));
+      .then((res) => {
+        setChapters(Array.isArray(res.data) ? res.data : []);
+      })
+      .catch((error) => {
+        console.error("Error fetching chapters:", error);
+        setChapters([]);
+        setSnackbar({
+          open: true,
+          message: "Failed to fetch chapters.",
+          severity: "error",
+        });
+      });
   }, [selectedBook]);
 
-  // Fetch lessons for selected chapter
+  // Fetch lessons for selected chapter with better error handling
   const fetchLessons = React.useCallback(() => {
     if (!selectedChapter) {
       setLessons([]);
@@ -171,8 +191,18 @@ export default function LessonGrid() {
     setLoading(true);
     api
       .get(`/Lesson/chapter/${selectedChapter}`)
-      .then((res) => setLessons(res.data))
-      .catch(() => setLessons([]))
+      .then((res) => {
+        setLessons(Array.isArray(res.data) ? res.data : []);
+      })
+      .catch((error) => {
+        console.error("Error fetching lessons:", error);
+        setLessons([]);
+        setSnackbar({
+          open: true,
+          message: "Failed to fetch lessons.",
+          severity: "error",
+        });
+      })
       .finally(() => setLoading(false));
   }, [selectedChapter]);
 
@@ -244,6 +274,7 @@ export default function LessonGrid() {
   const handleEditSubmit = async () => {
     try {
       let contentUrl = editLesson.content;
+
       // Always upload new content if changed
       if (editContent !== editLesson.content) {
         contentUrl = await uploadContentToFirebase(
@@ -251,13 +282,19 @@ export default function LessonGrid() {
           editLesson.lesson_Id
         );
       }
-      await api.put(`/Lesson/${editLesson.lesson_Id}`, {
-        lesson_Id: editLesson.lesson_Id,
+
+      // Match the API documentation structure exactly
+      const updateData = {
+        chapter_Id: editLesson.chapter_Id, // Required field
         lesson_Title: editValues.lesson_Title,
-        content: contentUrl,
-        status: "Pending",
-        rejectionReason: editValues.rejectionReason,
-      });
+        content: contentUrl || "", // Ensure content is never null
+        isActive: editLesson.isActive, // Preserve existing value
+        status: "Pending", // Reset to pending when editing
+        rejectionReason: "", // Clear rejection reason when editing
+      };
+
+      await api.put(`/Lesson/${editLesson.lesson_Id}`, updateData);
+
       setSnackbar({
         open: true,
         message: "Lesson updated successfully.",
@@ -268,7 +305,10 @@ export default function LessonGrid() {
     } catch (error) {
       setSnackbar({
         open: true,
-        message: error?.response?.data?.message || "Failed to update lesson.",
+        message:
+          error?.response?.data?.message ||
+          error?.response?.data ||
+          "Failed to update lesson.",
         severity: "error",
       });
     }
@@ -285,9 +325,11 @@ export default function LessonGrid() {
     setCreateTitle("");
   };
 
-  // Create lesson with only Title
+  // Create lesson with validation
   const handleCreateSubmit = async () => {
-    if (!createTitle.trim() || !selectedChapter) {
+    const title = createTitle.trim();
+
+    if (!title || !selectedChapter) {
       setSnackbar({
         open: true,
         message: "Please select a chapter and enter a lesson title.",
@@ -295,15 +337,27 @@ export default function LessonGrid() {
       });
       return;
     }
+
+    if (title.length < 2) {
+      setSnackbar({
+        open: true,
+        message: "Lesson title must be at least 2 characters long.",
+        severity: "error",
+      });
+      return;
+    }
+
     try {
-      await api.post("/Lesson", {
+      const createData = {
         chapter_Id: selectedChapter,
-        lesson_Title: createTitle,
-        content: "",
+        lesson_Title: title,
+        content: "", // Empty content initially
         isActive: false,
         status: "Pending",
         rejectionReason: "",
-      });
+      };
+
+      await api.post("/Lesson", createData);
       setSnackbar({
         open: true,
         message: "Lesson created successfully.",
@@ -315,7 +369,10 @@ export default function LessonGrid() {
     } catch (error) {
       setSnackbar({
         open: true,
-        message: error?.response?.data?.message || "Failed to create lesson.",
+        message:
+          error?.response?.data?.message ||
+          error?.response?.data ||
+          "Failed to create lesson.",
         severity: "error",
       });
     }
