@@ -257,6 +257,7 @@ export default function LessonGrid() {
   const handleEditSubmit = async () => {
     try {
       let contentUrl = editLesson.content;
+
       // Always upload new content if changed
       if (editContent !== editLesson.content) {
         contentUrl = await uploadContentToFirebase(
@@ -264,13 +265,19 @@ export default function LessonGrid() {
           editLesson.lesson_Id
         );
       }
-      await api.put(`/Lesson/${editLesson.lesson_Id}`, {
-        lesson_Id: editLesson.lesson_Id,
+
+      // Match the API documentation structure exactly
+      const updateData = {
+        chapter_Id: editLesson.chapter_Id, // Required field
         lesson_Title: editValues.lesson_Title,
-        content: contentUrl,
-        status: "Pending",
-        rejectionReason: editValues.rejectionReason,
-      });
+        content: contentUrl || "", // Ensure content is never null
+        isActive: editLesson.isActive, // Preserve existing value
+        status: "Pending", // Reset to pending when editing
+        rejectionReason: "", // Clear rejection reason when editing
+      };
+
+      await api.put(`/Lesson/${editLesson.lesson_Id}`, updateData);
+
       setSnackbar({
         open: true,
         message: "Lesson updated successfully.",
@@ -279,9 +286,13 @@ export default function LessonGrid() {
       setEditOpen(false);
       fetchLessons();
     } catch (error) {
+      console.error("Error updating lesson:", error);
       setSnackbar({
         open: true,
-        message: error?.response?.data?.message || "Failed to update lesson.",
+        message:
+          error?.response?.data?.message ||
+          error?.response?.data ||
+          "Failed to update lesson.",
         severity: "error",
       });
     }
@@ -296,7 +307,7 @@ export default function LessonGrid() {
   };
 
   const handleStatusSave = async () => {
-    if (statusValue === "Rejected" && !statusReason) {
+    if (statusValue === "Rejected" && !statusReason.trim()) {
       setSnackbar({
         open: true,
         message: "Rejection reason is required when status is Rejected.",
@@ -304,22 +315,51 @@ export default function LessonGrid() {
       });
       return;
     }
+
     try {
-      await api.put(`/Lesson/${statusLesson.lesson_Id}/status`, {
+      // Try dedicated status endpoint first
+      let statusData = {
         status: statusValue,
-        rejectionReason: statusValue === "Rejected" ? statusReason : "",
-      });
+        rejectionReason: statusValue === "Rejected" ? statusReason.trim() : "",
+      };
+
+      try {
+        await api.put(`/Lesson/${statusLesson.lesson_Id}/status`, statusData);
+      } catch (statusError) {
+        // If status endpoint doesn't exist, try full update
+        if (statusError.response?.status === 404) {
+          const fullUpdateData = {
+            chapter_Id: statusLesson.chapter_Id,
+            lesson_Title: statusLesson.lesson_Title,
+            content: statusLesson.content || "",
+            isActive: statusLesson.isActive,
+            status: statusValue,
+            rejectionReason:
+              statusValue === "Rejected" ? statusReason.trim() : "",
+          };
+          await api.put(`/Lesson/${statusLesson.lesson_Id}`, fullUpdateData);
+        } else {
+          throw statusError;
+        }
+      }
+
       setSnackbar({
         open: true,
         message: "Status updated successfully.",
         severity: "success",
       });
       setStatusDialogOpen(false);
+      setStatusValue("");
+      setStatusReason("");
       fetchLessons();
     } catch (error) {
+      console.error("Error updating status:", error);
       setSnackbar({
         open: true,
-        message: error?.response?.data?.message || "Failed to update status.",
+        message:
+          error?.response?.data?.message ||
+          error?.response?.data ||
+          "Failed to update status.",
         severity: "error",
       });
     }
@@ -338,7 +378,9 @@ export default function LessonGrid() {
 
   // Create lesson with only Title
   const handleCreateSubmit = async () => {
-    if (!createTitle.trim() || !selectedChapter) {
+    const title = createTitle.trim();
+
+    if (!title || !selectedChapter) {
       setSnackbar({
         open: true,
         message: "Please select a chapter and enter a lesson title.",
@@ -346,15 +388,27 @@ export default function LessonGrid() {
       });
       return;
     }
+
+    if (title.length < 2) {
+      setSnackbar({
+        open: true,
+        message: "Lesson title must be at least 2 characters long.",
+        severity: "error",
+      });
+      return;
+    }
+
     try {
-      await api.post("/Lesson", {
+      const createData = {
         chapter_Id: selectedChapter,
-        lesson_Title: createTitle,
-        content: "",
+        lesson_Title: title,
+        content: "", // Empty content initially
         isActive: false,
         status: "Pending",
         rejectionReason: "",
-      });
+      };
+
+      await api.post("/Lesson", createData);
       setSnackbar({
         open: true,
         message: "Lesson created successfully.",
@@ -364,9 +418,13 @@ export default function LessonGrid() {
       setCreateTitle("");
       fetchLessons();
     } catch (error) {
+      console.error("Error creating lesson:", error);
       setSnackbar({
         open: true,
-        message: error?.response?.data?.message || "Failed to create lesson.",
+        message:
+          error?.response?.data?.message ||
+          error?.response?.data ||
+          "Failed to create lesson.",
         severity: "error",
       });
     }
