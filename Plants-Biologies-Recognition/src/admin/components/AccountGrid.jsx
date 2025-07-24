@@ -85,6 +85,8 @@ export default function AccountGrid() {
   const [editOpen, setEditOpen] = React.useState(false);
   const [editUser, setEditUser] = React.useState(null);
   const [editValues, setEditValues] = React.useState({
+    account: "",
+    email: "",
     fullName: "",
     password: "",
     role: "",
@@ -145,6 +147,8 @@ export default function AccountGrid() {
   const handleEdit = (user) => {
     setEditUser(user);
     setEditValues({
+      account: user.account,
+      email: user.email || "",
       fullName: user.fullName,
       password: "", // empty by default for security
       role: user.role,
@@ -173,13 +177,14 @@ export default function AccountGrid() {
     try {
       const payload = {
         user_Id: editUser.user_Id || editUser.id, // use user_Id if available, fallback to id
-        account: editUser.account,
+        account: editValues.account,
+        email: editValues.email,
         password:
           editValues.password && editValues.password.trim() !== ""
             ? editValues.password
             : editUser.password || "", // send old password if not changed (or required by API)
         fullName: editValues.fullName,
-        role: editUser.role,
+        role: editValues.role,
         isActive: editValues.isActive,
       };
       await api.put(`/User/${editUser.user_Id || editUser.id}`, payload);
@@ -408,6 +413,24 @@ export default function AccountGrid() {
             mt: 1,
           }}
         >
+          <TextField
+            label="Account"
+            name="account"
+            value={editValues.account}
+            onChange={handleEditChange}
+            fullWidth
+            variant="outlined"
+            sx={{ mt: 3 }}
+          />
+          <TextField
+            label="Email"
+            name="email"
+            value={editValues.email}
+            onChange={handleEditChange}
+            fullWidth
+            variant="outlined"
+            sx={{ mt: 3 }}
+          />
           <TextField
             label="Full Name"
             name="fullName"
